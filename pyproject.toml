@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lpm-validation"
+version = "0.1.0"
+description = "Validation processing scripts for LPM"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "PhysicsX", email = "info@physicsx.ai"},
+]
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "flake8",
+    "mypy",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lpm_validation*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
