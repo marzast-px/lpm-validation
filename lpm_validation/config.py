@@ -11,11 +11,11 @@ class Configuration:
     def __init__(
         self,
         s3_bucket: str,
-        geometries_prefix: str = "sim-data/validation/geometries",
-        results_prefix: str = "sim-data/validation/outputs",
+        geometries_prefix: str = "validation/geometries",
+        results_prefix: str = "validation/outputs",
         output_path: str = "./output",
         car_groups: Optional[Dict[str, str]] = None,
-        aws_profile: Optional[str] = None,
+        aws_profile: str = "coreweave",
         output_to_s3: bool = False,
         max_workers: int = 10
     ):
@@ -28,7 +28,7 @@ class Configuration:
             results_prefix: S3 prefix for results data
             output_path: Local or S3 path for output files
             car_groups: Dictionary mapping car names to groups (sedan, SUV, etc.)
-            aws_profile: Optional AWS profile name
+            aws_profile: AWS profile name (default: 'coreweave')
             output_to_s3: Whether to save output to S3
             max_workers: Number of workers for concurrent processing
         """

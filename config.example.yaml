@@ -1,16 +1,19 @@
 # Example configuration file for LPM validation data collection
 
-# S3 bucket containing simulation data
-s3_bucket: "your-s3-bucket-name"
+# S3 bucket containing simulation data (required)
+s3_bucket: "sim-data"
 
-# S3 prefix for geometry data
-geometries_prefix: "sim-data/validation/geometries"
+# Optional: Override default AWS profile (default: "coreweave")
+# aws_profile: "coreweave"
 
-# S3 prefix for results data
-results_prefix: "sim-data/validation/outputs"
+# Optional: Override default S3 prefix for geometry data (default: "validation/geometries")
+# geometries_prefix: "validation/geometries"
 
-# Output path (local directory or S3 prefix)
-output_path: "./validation_output"
+# Optional: Override default S3 prefix for results data (default: "validation/outputs")
+# results_prefix: "validation/outputs"
+
+# Optional: Override default output path (default: "./output")
+# output_path: "./validation_output"
 
 # Car groups mapping (geometry name patterns to car names)
 car_groups:
@@ -18,3 +21,4 @@ car_groups:
   Polestar4: "Polestar4"
   EX90: "EX90"
   # Add more car mappings as needed
+

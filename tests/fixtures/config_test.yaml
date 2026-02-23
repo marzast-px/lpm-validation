@@ -1,6 +1,6 @@
-s3_bucket: "test-bucket"
-geometries_prefix: "test/geometries"
-results_prefix: "test/results"
+s3_bucket: "sim-data"
+geometries_prefix: "validation/geometries"
+results_prefix: "validation/outputs"
 output_path: "./test_output"
 
 car_groups:

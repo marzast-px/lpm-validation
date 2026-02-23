@@ -28,7 +28,7 @@ class ValidationDataCollector:
         
         # Initialize S3 data source
         logger.info(f"Initializing S3 data source for bucket: {config.s3_bucket}")
-        self.data_source = S3DataSource(bucket_name=config.s3_bucket)
+        self.data_source = S3DataSource(bucket=config.s3_bucket, aws_profile=config.aws_profile)
         
         # Initialize components
         self.discovery = SimulationDiscovery(
@@ -134,30 +134,3 @@ class ValidationDataCollector:
         except Exception as e:
             logger.error(f"Error during validation data collection: {e}", exc_info=True)
             raise
-    
-    def test_connection(self) -> bool:
-        """
-        Test S3 connection and configuration.
-        
-        Returns:
-            True if connection is successful
-        """
-        try:
-            logger.info("Testing S3 connection...")
-            
-            # Test listing geometries prefix
-            folders = self.data_source.list_folders(self.config.geometries_prefix, max_results=1)
-            
-            logger.info(f"✓ Successfully connected to S3 bucket: {self.config.s3_bucket}")
-            logger.info(f"✓ Geometries prefix accessible: {self.config.geometries_prefix}")
-            
-            if folders:
-                logger.info(f"✓ Found at least one geometry folder: {folders[0]}")
-            else:
-                logger.warning(f"⚠ No geometry folders found at: {self.config.geometries_prefix}")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"✗ Connection test failed: {e}")
-            return False

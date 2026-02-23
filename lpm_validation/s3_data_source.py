@@ -14,21 +14,19 @@ logger = logging.getLogger(__name__)
 class S3DataSource:
     """Handles all interactions with S3 storage."""
     
-    def __init__(self, bucket: str, aws_profile: Optional[str] = None):
+    def __init__(self, bucket: str, aws_profile: str = "coreweave"):
         """
         Initialize S3 data source.
         
         Args:
             bucket: S3 bucket name
-            aws_profile: Optional AWS profile name
+            aws_profile: AWS profile name (default: 'coreweave')
         """
         self.bucket = bucket
+        self.aws_profile = aws_profile
         
-        if aws_profile:
-            session = boto3.Session(profile_name=aws_profile)
-            self.s3_client = session.client('s3')
-        else:
-            self.s3_client = boto3.client('s3')
+        session = boto3.Session(profile_name=aws_profile)
+        self.s3_client = session.client('s3')
         
         logger.info(f"Initialized S3DataSource for bucket: {bucket}")
     

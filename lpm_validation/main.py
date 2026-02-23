@@ -45,12 +45,6 @@ Examples:
   # Process specific car
   %(prog)s --config config.yaml --car Polestar3
   
-  # Output to S3 instead of local files
-  %(prog)s --config config.yaml --output-s3
-  
-  # Test S3 connection
-  %(prog)s --config config.yaml --test-connection
-  
   # Verbose logging
   %(prog)s --config config.yaml --verbose
         """
@@ -68,18 +62,6 @@ Examples:
         type=str,
         default=None,
         help='Process only this specific car (optional)'
-    )
-    
-    parser.add_argument(
-        '--output-s3',
-        action='store_true',
-        help='Output results to S3 instead of local files'
-    )
-    
-    parser.add_argument(
-        '--test-connection',
-        action='store_true',
-        help='Test S3 connection and exit'
     )
     
     parser.add_argument(
@@ -115,19 +97,7 @@ def main():
         logger.info(f"Car Groups: {len(config.car_groups)} configured")
         
         # Initialize collector
-        collector = ValidationDataCollector(
-            config=config,
-            output_to_s3=args.output_s3
-        )
-        
-        # Test connection if requested
-        if args.test_connection:
-            logger.info("")
-            logger.info("=" * 80)
-            logger.info("TESTING S3 CONNECTION")
-            logger.info("=" * 80)
-            success = collector.test_connection()
-            sys.exit(0 if success else 1)
+        collector = ValidationDataCollector(config=config)
         
         # Execute collection
         result = collector.execute(car_filter=args.car)
