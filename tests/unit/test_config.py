@@ -2,6 +2,7 @@
 
 import pytest
 from pathlib import Path
+from typing import Optional
 from lpm_validation.config import Configuration
 
 
@@ -28,7 +29,7 @@ class TestConfiguration:
         """Test that missing required field raises ValueError."""
         with pytest.raises(ValueError, match="s3_bucket"):
             Configuration(
-                s3_bucket=None,
+                s3_bucket=None,  # type: ignore[arg-type]
                 geometries_prefix="test/geometries",
                 results_prefix="test/results",
                 output_path="./output",
@@ -66,7 +67,7 @@ class TestConfiguration:
                 geometries_prefix="test/geometries",
                 results_prefix="test/results",
                 output_path="./output",
-                car_groups="invalid"
+                car_groups="invalid"  # type: ignore[arg-type]
             )
     
     def test_validate_invalid_max_workers(self):
