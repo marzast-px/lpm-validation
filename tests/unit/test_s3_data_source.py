@@ -124,4 +124,79 @@ class TestS3DataSourceIntegration:
         assert S3DataSource.extract_folder_name("path/to/folder") == "folder"
         assert S3DataSource.extract_folder_name("single/") == "single"
         assert S3DataSource.extract_folder_name("root") == "root"
+    
+    def test_read_csv_file_not_found(self, s3_source):
+        """Test reading a non-existent CSV file returns None."""
+        # Try to read a CSV file that doesn't exist
+        fake_csv_key = "this/path/does/not/exist/file.csv"
+        result = s3_source.read_csv(fake_csv_key)
+        
+        # Should return None for non-existent file
+        assert result is None, "Should return None for non-existent CSV file"
+    
+    def test_read_csv_from_results(self, s3_source):
+        """Test reading CSV files from results prefix if they exist."""
+        results_prefix = "validation/outputs"
+        
+        try:
+            # Try to find CSV files in results area
+            csv_files = s3_source.list_files(results_prefix, extension=".csv")
+            
+            if len(csv_files) == 0:
+                pytest.skip(f"No CSV files found in {results_prefix} to test read_csv")
+            
+            # Try to read the first CSV file found
+            first_csv = csv_files[0]
+            data = s3_source.read_csv(first_csv)
+            
+            # Verify the data is correct format
+            assert data is not None, f"Failed to read CSV from {first_csv}"
+            assert isinstance(data, list), f"Expected list, got {type(data)}"
+            
+            if len(data) > 0:
+                # First item should be a dictionary (CSV row)
+                assert isinstance(data[0], dict), f"Expected dict for CSV row, got {type(data[0])}"
+                # Dictionary should have keys (column names)
+                assert len(data[0].keys()) > 0, "CSV row should have column names"
+                
+                print(f"Successfully read CSV with {len(data)} rows and columns: {list(data[0].keys())}")
+        
+        except ClientError as e:
+            pytest.fail(f"Failed to read CSV file: {e}")
+    
+    def test_read_csv_structure(self, s3_source):
+        """Test that read_csv returns proper dictionary structure."""
+        results_prefix = "validation/outputs"
+        
+        try:
+            # Look for any CSV files
+            folders = s3_source.list_folders(results_prefix)
+            
+            csv_file_found = None
+            for folder in folders:
+                csv_files = s3_source.list_files(folder, extension=".csv")
+                if csv_files:
+                    csv_file_found = csv_files[0]
+                    break
+            
+            if csv_file_found is None:
+                pytest.skip("No CSV files found to test structure")
+            
+            # Read the CSV
+            data = s3_source.read_csv(csv_file_found)
+            
+            assert data is not None, "CSV data should not be None"
+            assert isinstance(data, list), "CSV data should be a list"
+            
+            if len(data) > 0:
+                # Each row should be a dictionary
+                for i, row in enumerate(data[:3]):  # Check first 3 rows
+                    assert isinstance(row, dict), f"Row {i} should be a dict, got {type(row)}"
+                    # All rows should have the same keys
+                    if i > 0:
+                        assert set(row.keys()) == set(data[0].keys()), \
+                            f"Row {i} has different columns than first row"
+        
+        except ClientError as e:
+            pytest.fail(f"Failed to test CSV structure: {e}")
 

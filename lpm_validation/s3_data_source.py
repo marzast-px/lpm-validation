@@ -179,27 +179,6 @@ class S3DataSource:
             logger.error(f"Error parsing CSV from {s3_key}: {e}")
             return None
     
-    def write_text(self, s3_key: str, content: str, content_type: str = 'text/plain'):
-        """
-        Write text content to S3.
-        
-        Args:
-            s3_key: S3 object key
-            content: Text content to write
-            content_type: Content type
-        """
-        try:
-            self.s3_client.put_object(
-                Bucket=self.bucket,
-                Key=s3_key,
-                Body=content.encode('utf-8'),
-                ContentType=content_type
-            )
-            logger.info(f"Successfully wrote file to {s3_key}")
-        except ClientError as e:
-            logger.error(f"Error writing to {s3_key}: {e}")
-            raise
-    
     def folder_exists(self, prefix: str) -> bool:
         """
         Check if a folder/prefix exists in S3.
