@@ -1,10 +1,11 @@
 """Main validation data collector orchestrator."""
 
 import logging
-from typing import Optional
+from typing import Optional, List
 from lpm_validation.config import Configuration
 from lpm_validation.s3_data_source import S3DataSource
-from lpm_validation.discovery import SimulationDiscovery
+from lpm_validation.metadata_extractor import MetadataExtractor
+from lpm_validation.simulation_record import SimulationRecord
 from lpm_validation.results_matcher import ResultsMatcher
 from lpm_validation.csv_exporter import CSVExporter
 from lpm_validation.summary_report import SummaryReportGenerator
@@ -30,12 +31,10 @@ class ValidationDataCollector:
         logger.info(f"Initializing S3 data source for bucket: {config.s3_bucket}")
         self.data_source = S3DataSource(bucket=config.s3_bucket, aws_profile=config.aws_profile)
         
-        # Initialize components
-        self.discovery = SimulationDiscovery(
-            config=config,
-            data_source=self.data_source
-        )
+        # Initialize metadata extractor
+        self.metadata_extractor = MetadataExtractor(self.data_source)
         
+        # Initialize components
         self.matcher = ResultsMatcher(
             config=config,
             data_source=self.data_source
@@ -52,6 +51,89 @@ class ValidationDataCollector:
             data_source=self.data_source if output_to_s3 else None,
             output_to_s3=output_to_s3
         )
+    
+    def discover_all(self, car_filter: Optional[str] = None) -> List[SimulationRecord]:
+        """
+        Discover all simulations in the geometry folder structure.
+        
+        Args:
+            car_filter: Optional car name to filter (processes only this car)
+            
+        Returns:
+            List of SimulationRecord instances
+        """
+        simulation_records = []
+        geometries_prefix = self.config.geometries_prefix
+        
+        logger.info(f"Starting discovery in {geometries_prefix}")
+        
+        # List all geometry folders
+        geometry_folders = self.data_source.list_folders(geometries_prefix)
+        
+        logger.info(f"Found {len(geometry_folders)} geometry folders")
+        
+        for geometry_folder in geometry_folders:
+            try:
+                record = self._create_simulation_record(geometry_folder)
+                if record:
+                    # Apply car filter if provided
+                    if car_filter is None or record.car_name == car_filter:
+                        simulation_records.append(record)
+            except Exception as e:
+                logger.error(f"Error processing {geometry_folder}: {e}")
+                continue
+        
+        logger.info(f"Discovery complete. Found {len(simulation_records)} simulations")
+        
+        return simulation_records
+    
+    def _create_simulation_record(self, geometry_folder: str) -> Optional[SimulationRecord]:
+        """
+        Create and populate initial simulation record.
+        
+        Args:
+            geometry_folder: S3 path to geometry folder
+            
+        Returns:
+            SimulationRecord instance or None if error
+        """
+        # Extract metadata from JSON in folder
+        metadata = self.metadata_extractor.extract_from_folder(geometry_folder)
+        
+        if not metadata:
+            logger.warning(f"No metadata found in {geometry_folder}")
+            return None
+        
+        # Extract geometry name from folder path
+        geometry_name = self.data_source.extract_folder_name(geometry_folder)
+        
+        # Extract car name from baseline_id by removing _Symmetric suffix
+        baseline_id = metadata.get('baseline_id', '')
+        if baseline_id:
+            car_name = baseline_id.replace('_Symmetric', '')
+        else:
+            # Fall back to unique_id if no baseline_id
+            unique_id = metadata.get('unique_id', '')
+            car_name = unique_id.split('_Morph_')[0].replace('_Symmetric', '') if unique_id else 'Unknown'
+        
+        car_group = self.config.car_groups.get(car_name, 'unknown')
+        
+        # Create simulation record
+        record = SimulationRecord(
+            car_name=car_name,
+            car_group=car_group,
+            geometry_name=geometry_name,
+            unique_id=metadata.get('unique_id', geometry_name),
+            baseline_id=metadata.get('baseline_id', ''),
+            morph_type=metadata.get('morph_type'),
+            morph_value=metadata.get('morph_value'),
+            morph_parameters=metadata.get('morph_parameters', {}),
+            s3_path=geometry_folder
+        )
+        
+        logger.debug(f"Created record: {record}")
+        
+        return record
     
     def execute(self, car_filter: Optional[str] = None) -> dict:
         """
@@ -73,7 +155,7 @@ class ValidationDataCollector:
             logger.info("PHASE 1: GEOMETRY DISCOVERY")
             logger.info("-" * 80)
             
-            simulation_records = self.discovery.discover_all(car_filter=car_filter)
+            simulation_records = self.discover_all(car_filter=car_filter)
             
             logger.info(f"Discovered {len(simulation_records)} geometries")
             

@@ -29,18 +29,14 @@ class MetadataExtractor:
         Returns:
             Dictionary with metadata or None if error
         """
-        # Find JSON file in the folder
-        json_files = self.data_source.list_files(geometry_folder, extension='.json')
+        # JSON file has the same name as the folder
+        folder_name = geometry_folder.rstrip('/').split('/')[-1]
+        json_path = f"{geometry_folder.rstrip('/')}/{folder_name}.json"
         
-        if not json_files:
-            logger.warning(f"No JSON files found in {geometry_folder}")
-            return None
-        
-        # Read the first JSON file found
-        json_path = json_files[0]
         json_data = self.data_source.read_json(json_path)
         
         if not json_data:
+            logger.warning(f"No JSON data found at {json_path}")
             return None
         
         return self.parse_geometry_json(json_data)
@@ -59,15 +55,11 @@ class MetadataExtractor:
         parent_baseline_id = json_data.get('parent_baseline_id', '')
         morph_parameters = json_data.get('morph_parameters', {})
         
-        # Extract car name from unique_id or baseline
-        car_name = self._extract_car_name(unique_id, parent_baseline_id)
-        
         # Determine morph type and value
         morph_type, morph_value = self._extract_morph_info(morph_parameters)
         
         metadata = {
             'unique_id': unique_id,
-            'car_name': car_name,
             'baseline_id': parent_baseline_id,
             'morph_type': morph_type,
             'morph_value': morph_value,
@@ -76,33 +68,6 @@ class MetadataExtractor:
         
         logger.debug(f"Extracted metadata: {metadata}")
         return metadata
-    
-    def _extract_car_name(self, unique_id: str, baseline_id: str) -> str:
-        """
-        Extract car name from unique_id or baseline_id.
-        
-        Args:
-            unique_id: Unique simulation ID
-            baseline_id: Parent baseline ID
-            
-        Returns:
-            Car name
-        """
-        # Try to extract from baseline_id first
-        if baseline_id:
-            # Remove _Symmetric suffix if present
-            car_name = baseline_id.replace('_Symmetric', '')
-            return car_name
-        
-        # Fall back to unique_id
-        if unique_id:
-            # Extract up to _Morph
-            parts = unique_id.split('_Morph_')
-            if parts:
-                car_name = parts[0].replace('_Symmetric', '')
-                return car_name
-        
-        return 'Unknown'
     
     def _extract_morph_info(self, morph_parameters: Dict[str, float]) -> Tuple[Optional[str], Optional[float]]:
         """

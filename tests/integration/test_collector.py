@@ -21,13 +21,14 @@ class TestValidationDataCollector:
         
         assert collector.config == sample_config
         assert collector.output_to_s3 is False
-        assert collector.discovery is not None
+        assert collector.data_source is not None
+        assert collector.metadata_extractor is not None
         assert collector.matcher is not None
         assert collector.exporter is not None
         assert collector.report_generator is not None
     
     @patch('lpm_validation.collector.S3DataSource')
-    @patch('lpm_validation.discovery.SimulationDiscovery.discover_all')
+    @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
     @patch('lpm_validation.results_matcher.ResultsMatcher.match_all')
     def test_execute_success(
         self, mock_match, mock_discover, mock_s3_class, 
@@ -92,7 +93,7 @@ class TestValidationDataCollector:
         assert summary_file.exists()
     
     @patch('lpm_validation.collector.S3DataSource')
-    @patch('lpm_validation.discovery.SimulationDiscovery.discover_all')
+    @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
     def test_execute_no_geometries(
         self, mock_discover, mock_s3_class, sample_config
     ):
@@ -110,7 +111,7 @@ class TestValidationDataCollector:
         assert result['total_geometries'] == 0
     
     @patch('lpm_validation.collector.S3DataSource')
-    @patch('lpm_validation.discovery.SimulationDiscovery.discover_all')
+    @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
     def test_execute_with_car_filter(
         self, mock_discover, mock_s3_class, sample_config, tmp_path
     ):

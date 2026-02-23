@@ -1,13 +1,27 @@
 {
-  "unique_id": "Polestar3_baseline_002_rh10",
-  "parent_baseline_id": "Polestar3_baseline",
-  "name": "Polestar3 Ride Height +10mm",
-  "morph_parameters": {
-    "ride_height": 10.0,
-    "front_dam": 0.0,
-    "rear_diffuser": 0.0
+  "schema_version": "1.0",
+  "unique_id": "Audi_RS7_Sportback_Symmetric_Morph_202",
+  "type": "morph",
+  "source_data": {
+    "geometry_file": null,
+    "simulation_result_file": null
   },
-  "reference_area": 2.5,
-  "reference_length": 4.8,
-  "created_at": "2026-01-15T11:00:00Z"
+  "morph_parameters": {
+    "Front Fascia Curvature": 0.0,
+    "Front Overhang": 10.0,
+    "Rear Overhang": 0.0,
+    "Roof Height & Curvature": 0.0,
+    "Diffuser Trailing Edge Height and Departure": 0.0,
+    "Hood Height": 0.0
+  },
+  "geometry": {
+    "dimensions_m": {
+      "length": null,
+      "width": null,
+      "height": null,
+      "wheelbase": null
+    },
+    "frontal_area_m2": null
+  },
+  "parent_baseline_id": "Audi_RS7_Sportback_Symmetric"
 }

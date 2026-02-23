@@ -6,4 +6,5 @@ output_path: "./test_output"
 car_groups:
   Polestar3: "Polestar3"
   Polestar4: "Polestar4"
-  EX90: "EX90"
+  EX90: "SUV"
+  Audi_RS7_Sportback: "sedan"
