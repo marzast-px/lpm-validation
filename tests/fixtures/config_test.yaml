@@ -1,0 +1,9 @@
+s3_bucket: "test-bucket"
+geometries_prefix: "test/geometries"
+results_prefix: "test/results"
+output_path: "./test_output"
+
+car_groups:
+  Polestar3: "Polestar3"
+  Polestar4: "Polestar4"
+  EX90: "EX90"

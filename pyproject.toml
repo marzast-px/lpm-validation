@@ -15,15 +15,21 @@ dependencies = [
     "numpy",
     "pandas",
     "matplotlib",
+    "boto3>=1.26.0",
+    "PyYAML>=6.0",
 ]
+
+[project.scripts]
+lpm-validation = "lpm_validation.main:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
-    "pytest-cov",
-    "black",
-    "flake8",
-    "mypy",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+    "black>=23.0",
+    "flake8>=6.0",
+    "mypy>=1.0",
 ]
 
 [tool.setuptools.packages.find]

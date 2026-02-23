@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Command-line entry point for LPM validation data collection."""
+
+import argparse
+import logging
+import sys
+from pathlib import Path
+from lpm_validation.config import Configuration
+from lpm_validation.collector import ValidationDataCollector
+
+
+def setup_logging(verbose: bool = False):
+    """
+    Configure logging.
+    
+    Args:
+        verbose: Enable verbose (DEBUG) logging
+    """
+    level = logging.DEBUG if verbose else logging.INFO
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Reduce boto3 logging noise
+    logging.getLogger('boto3').setLevel(logging.WARNING)
+    logging.getLogger('botocore').setLevel(logging.WARNING)
+    logging.getLogger('s3transfer').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Collect and export validation data from S3 simulation results',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Process all cars using config file
+  %(prog)s --config config.yaml
+  
+  # Process specific car
+  %(prog)s --config config.yaml --car Polestar3
+  
+  # Output to S3 instead of local files
+  %(prog)s --config config.yaml --output-s3
+  
+  # Test S3 connection
+  %(prog)s --config config.yaml --test-connection
+  
+  # Verbose logging
+  %(prog)s --config config.yaml --verbose
+        """
+    )
+    
+    parser.add_argument(
+        '--config',
+        type=str,
+        required=True,
+        help='Path to configuration file (JSON or YAML)'
+    )
+    
+    parser.add_argument(
+        '--car',
+        type=str,
+        default=None,
+        help='Process only this specific car (optional)'
+    )
+    
+    parser.add_argument(
+        '--output-s3',
+        action='store_true',
+        help='Output results to S3 instead of local files'
+    )
+    
+    parser.add_argument(
+        '--test-connection',
+        action='store_true',
+        help='Test S3 connection and exit'
+    )
+    
+    parser.add_argument(
+        '--verbose',
+        '-v',
+        action='store_true',
+        help='Enable verbose (DEBUG) logging'
+    )
+    
+    return parser.parse_args()
+
+
+def main():
+    """Main entry point."""
+    # Parse arguments
+    args = parse_arguments()
+    
+    # Setup logging
+    setup_logging(verbose=args.verbose)
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Load configuration
+        logger.info(f"Loading configuration from: {args.config}")
+        config = Configuration.from_file(args.config)
+        
+        logger.info(f"Configuration loaded successfully")
+        logger.info(f"S3 Bucket: {config.s3_bucket}")
+        logger.info(f"Geometries Prefix: {config.geometries_prefix}")
+        logger.info(f"Results Prefix: {config.results_prefix}")
+        logger.info(f"Output Path: {config.output_path}")
+        logger.info(f"Car Groups: {len(config.car_groups)} configured")
+        
+        # Initialize collector
+        collector = ValidationDataCollector(
+            config=config,
+            output_to_s3=args.output_s3
+        )
+        
+        # Test connection if requested
+        if args.test_connection:
+            logger.info("")
+            logger.info("=" * 80)
+            logger.info("TESTING S3 CONNECTION")
+            logger.info("=" * 80)
+            success = collector.test_connection()
+            sys.exit(0 if success else 1)
+        
+        # Execute collection
+        result = collector.execute(car_filter=args.car)
+        
+        # Print final summary
+        if result['status'] == 'success':
+            logger.info("")
+            logger.info("Final Statistics:")
+            logger.info(f"  Total Geometries: {result['total_geometries']}")
+            logger.info(f"  With Results: {result['with_results']}")
+            logger.info(f"  Without Results: {result['without_results']}")
+            logger.info(f"  Output Location: {result['output_path']}")
+            sys.exit(0)
+        else:
+            logger.warning(f"Collection completed with status: {result['status']}")
+            sys.exit(0)
+            
+    except FileNotFoundError as e:
+        logger.error(f"Configuration file not found: {e}")
+        sys.exit(1)
+        
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

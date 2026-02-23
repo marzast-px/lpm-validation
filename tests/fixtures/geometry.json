@@ -1,0 +1,13 @@
+{
+  "unique_id": "Polestar3_baseline_001",
+  "parent_baseline_id": "Polestar3_baseline",
+  "name": "Polestar3 Baseline Geometry",
+  "morph_parameters": {
+    "ride_height": 0.0,
+    "front_dam": 0.0,
+    "rear_diffuser": 0.0
+  },
+  "reference_area": 2.5,
+  "reference_length": 4.8,
+  "created_at": "2026-01-15T10:30:00Z"
+}

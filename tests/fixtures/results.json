@@ -1,0 +1,12 @@
+{
+  "Lift_100[N]": 125.5,
+  "Drag_100[N]": 85.3,
+  "Converged_Flag": true,
+  "reference_density": 1.225,
+  "reference_velocity": 27.78,
+  "reference_area": 2.5,
+  "simulation_time": 450.0,
+  "iterations": 5000,
+  "solver": "JakubNet",
+  "timestamp": "2026-01-20T14:25:00Z"
+}
