@@ -1,6 +1,5 @@
 """Configuration module for validation data extraction."""
 
-import json
 import yaml
 from pathlib import Path
 from typing import Dict, Optional
@@ -65,23 +64,7 @@ class Configuration:
             raise ValueError("max_workers must be at least 1")
     
     @classmethod
-    def from_json(cls, config_path: str) -> 'Configuration':
-        """
-        Load configuration from JSON file.
-        
-        Args:
-            config_path: Path to JSON configuration file
-            
-        Returns:
-            Configuration instance
-        """
-        with open(config_path, 'r') as f:
-            config_dict = json.load(f)
-        
-        return cls(**config_dict)
-    
-    @classmethod
-    def from_yaml(cls, config_path: str) -> 'Configuration':
+    def from_file(cls, config_path: str) -> 'Configuration':
         """
         Load configuration from YAML file.
         

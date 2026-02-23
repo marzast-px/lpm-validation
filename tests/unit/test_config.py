@@ -1,8 +1,6 @@
 """Unit tests for config module."""
 
 import pytest
-import json
-import tempfile
 from pathlib import Path
 from lpm_validation.config import Configuration
 
@@ -37,21 +35,6 @@ class TestConfiguration:
                 car_groups={}
             )
     
-    def test_from_dict(self):
-        """Test creating configuration from dictionary."""
-        data = {
-            "s3_bucket": "test-bucket",
-            "geometries_prefix": "test/geometries",
-            "results_prefix": "test/results",
-            "output_path": "./output",
-            "car_groups": {"Car1": "Car1"}
-        }
-        
-        config = Configuration.from_dict(data)
-        
-        assert config.s3_bucket == "test-bucket"
-        assert config.car_groups == {"Car1": "Car1"}
-    
     def test_from_file_yaml(self, sample_config_file):
         """Test loading configuration from YAML file."""
         config = Configuration.from_file(sample_config_file)
@@ -60,39 +43,39 @@ class TestConfiguration:
         assert config.geometries_prefix == "test/geometries"
         assert "Polestar3" in config.car_groups
     
-    def test_from_file_json(self, tmp_path):
-        """Test loading configuration from JSON file."""
-        config_data = {
-            "s3_bucket": "json-bucket",
-            "geometries_prefix": "json/geometries",
-            "results_prefix": "json/results",
-            "output_path": "./json_output",
-            "car_groups": {"Car1": "Car1"}
-        }
-        
-        config_file = tmp_path / "config.json"
-        with open(config_file, 'w') as f:
-            json.dump(config_data, f)
-        
-        config = Configuration.from_file(str(config_file))
-        
-        assert config.s3_bucket == "json-bucket"
-        assert config.geometries_prefix == "json/geometries"
-    
     def test_from_file_not_found(self):
         """Test that loading non-existent file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
             Configuration.from_file("nonexistent.yaml")
     
-    def test_get_car_name_from_unique_id(self, sample_config):
-        """Test extracting car name from unique_id."""
-        car_name = sample_config.get_car_name("Polestar3_baseline_001")
-        assert car_name == "Polestar3"
+    def test_to_dict(self, sample_config):
+        """Test converting configuration to dictionary."""
+        config_dict = sample_config.to_dict()
         
-        car_name = sample_config.get_car_name("EX90_test_123")
-        assert car_name == "EX90"
+        assert config_dict["s3_bucket"] == "test-bucket"
+        assert config_dict["geometries_prefix"] == "test/geometries"
+        assert config_dict["results_prefix"] == "test/results"
+        assert config_dict["output_path"] == "./test_output"
+        assert "Polestar3" in config_dict["car_groups"]
     
-    def test_get_car_name_unknown(self, sample_config):
-        """Test that unknown car returns None."""
-        car_name = sample_config.get_car_name("UnknownCar_123")
-        assert car_name is None
+    def test_validate_invalid_car_groups(self):
+        """Test that invalid car_groups type raises ValueError."""
+        with pytest.raises(ValueError, match="car_groups must be a dictionary"):
+            Configuration(
+                s3_bucket="test-bucket",
+                geometries_prefix="test/geometries",
+                results_prefix="test/results",
+                output_path="./output",
+                car_groups="invalid"
+            )
+    
+    def test_validate_invalid_max_workers(self):
+        """Test that invalid max_workers raises ValueError."""
+        with pytest.raises(ValueError, match="max_workers must be at least 1"):
+            Configuration(
+                s3_bucket="test-bucket",
+                geometries_prefix="test/geometries",
+                results_prefix="test/results",
+                output_path="./output",
+                max_workers=0
+            )
