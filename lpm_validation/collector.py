@@ -177,7 +177,7 @@ class ValidationDataCollector:
             logger.info("-" * 80)
             
             record_set.to_csv(self.config.output_path, group_by_car=True, simulator=simulator_filter)
-            logger.info(f"CSV files exported to: {self.config.output_path}")
+            logger.info(f"CSV file(s) exported to: {self.config.output_path}")
             
             # PHASE 4: Summary Report
             logger.info("")

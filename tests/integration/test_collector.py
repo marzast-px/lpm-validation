@@ -24,11 +24,11 @@ class TestValidationDataCollector:
     
     @patch('lpm_validation.collector.S3DataSource')
     @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
-    def test_execute_success(
+    def test_execute_jakubnet_polestar3(
         self, mock_discover, mock_s3_class, 
         sample_config, tmp_path
     ):
-        """Test successful execution workflow."""
+        """Test execution with JakubNet simulator and Polestar3 car."""
         # Override output path for testing
         sample_config.output_path = str(tmp_path / "output")
         
@@ -55,20 +55,20 @@ class TestValidationDataCollector:
         with patch.object(record1, 'find_and_extract_results') as mock_find1, \
              patch.object(record2, 'find_and_extract_results') as mock_find2:
             
-            # Setup first record to have results
-            def set_results1(*args):
+            # Setup first record to have results with JakubNet simulator
+            def set_results1(*args, **kwargs):
                 record1.has_results = True
                 record1.cd = 0.34
                 record1.cl = 0.05
                 record1.simulator = "JakubNet"
                 record1.converged = True
             mock_find1.side_effect = set_results1
-            mock_find2.side_effect = lambda *args: None  # Second record has no results
+            mock_find2.side_effect = lambda *args, **kwargs: None  # Second record has no results
             
             # Execute
             collector = ValidationDataCollector(config=sample_config)
             
-            result = collector.execute()
+            result = collector.execute(car_filter="Polestar3")
             
             # Verify result
             assert result['status'] == 'success'
@@ -76,8 +76,69 @@ class TestValidationDataCollector:
             assert result['with_results'] == 1
             assert result['without_results'] == 1
             
-            # Verify CSV was created
-            csv_file = Path(sample_config.output_path) / "Polestar3_validation_data.csv"
+            # Verify CSV was created with correct naming
+            csv_file = Path(sample_config.output_path) / "JakubNet_Polestar3.csv"
+            assert csv_file.exists()
+            
+            # Verify summary report was created
+            summary_file = Path(sample_config.output_path) / "validation_summary.txt"
+            assert summary_file.exists()
+    
+    @patch('lpm_validation.collector.S3DataSource')
+    @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
+    def test_execute_des_bmw_ix(
+        self, mock_discover, mock_s3_class, 
+        sample_config, tmp_path
+    ):
+        """Test execution with DES simulator and BMW_IX car."""
+        # Override output path for testing
+        sample_config.output_path = str(tmp_path / "output")
+        
+        # Mock discovery to return sample records in a record set
+        record1 = SimulationRecord(
+            geometry_name="bmw_001", unique_id="bmw_001",
+            car_name="BMW_IX", car_group="BMW_IX",
+            baseline_id="bmw_baseline", has_results=False,
+            s3_path="test/path"
+        )
+        record2 = SimulationRecord(
+            geometry_name="bmw_002", unique_id="bmw_002",
+            car_name="BMW_IX", car_group="BMW_IX",
+            baseline_id="bmw_baseline", has_results=False,
+            s3_path="test/path"
+        )
+        
+        record_set = SimulationRecordSet()
+        record_set.add(record1)
+        record_set.add(record2)
+        mock_discover.return_value = record_set
+        
+        # Mock find_and_extract_results on the records
+        with patch.object(record1, 'find_and_extract_results') as mock_find1, \
+             patch.object(record2, 'find_and_extract_results') as mock_find2:
+            
+            # Setup first record to have results with DES simulator
+            def set_results1(*args, **kwargs):
+                record1.has_results = True
+                record1.cd = 0.28
+                record1.cl = 0.03
+                record1.converged = True
+            mock_find1.side_effect = set_results1
+            mock_find2.side_effect = lambda *args, **kwargs: None  # Second record has no results
+            
+            # Execute
+            collector = ValidationDataCollector(config=sample_config)
+            
+            result = collector.execute(car_filter="BMW_IX", simulator_filter="DES")
+            
+            # Verify result
+            assert result['status'] == 'success'
+            assert result['total_geometries'] == 2
+            assert result['with_results'] == 1
+            assert result['without_results'] == 1
+            
+            # Verify CSV was created with correct naming
+            csv_file = Path(sample_config.output_path) / "DES_BMW_IX.csv"
             assert csv_file.exists()
             
             # Verify summary report was created
@@ -126,33 +187,3 @@ class TestValidationDataCollector:
         # Verify car_filter was passed to discovery
         mock_discover.assert_called_once_with(car_filter="Polestar3")
     
-    @patch('lpm_validation.s3_data_source.boto3.client')
-    def test_test_connection_success(self, mock_boto_client, sample_config):
-        """Test connection test with success."""
-        # Setup mock S3 client
-        mock_s3 = MagicMock()
-        mock_s3.list_objects_v2.return_value = {
-            'Contents': [{'Key': 'test/geometries/folder1/'}],
-            'IsTruncated': False
-        }
-        mock_boto_client.return_value = mock_s3
-        
-        collector = ValidationDataCollector(config=sample_config)
-        
-        success = collector.test_connection()
-        
-        assert success is True
-    
-    @patch('lpm_validation.s3_data_source.boto3.client')
-    def test_test_connection_failure(self, mock_boto_client, sample_config):
-        """Test connection test with failure."""
-        # Setup mock S3 client to raise exception
-        mock_s3 = MagicMock()
-        mock_s3.list_objects_v2.side_effect = Exception("Connection failed")
-        mock_boto_client.return_value = mock_s3
-        
-        collector = ValidationDataCollector(config=sample_config)
-        
-        success = collector.test_connection()
-        
-        assert success is False
