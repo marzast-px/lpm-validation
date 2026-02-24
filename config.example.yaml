@@ -17,8 +17,8 @@ s3_bucket: "sim-data"
 
 # Car groups mapping (geometry name patterns to car names)
 car_groups:
-  Polestar3: "Polestar3"
-  Polestar4: "Polestar4"
-  EX90: "EX90"
+  Audi_RS7_Sportback_Symmetric: "Sedan"
+  DES_BMW_IX: "SUV"
+  Mitsubishi_Eclipse: "SUV"
   # Add more car mappings as needed
 

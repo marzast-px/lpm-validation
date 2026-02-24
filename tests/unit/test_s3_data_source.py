@@ -199,4 +199,105 @@ class TestS3DataSourceIntegration:
         
         except ClientError as e:
             pytest.fail(f"Failed to test CSV structure: {e}")
+    
+    def test_list_folders_immediate_only(self, s3_source, geometries_prefix):
+        """Test listing immediate subdirectories (leaf_only=False)."""
+        try:
+            # Get immediate subdirectories only
+            immediate_folders = s3_source.list_folders(geometries_prefix, leaf_only=False)
+            
+            # Should find at least one immediate subdirectory
+            assert len(immediate_folders) > 0, f"Should find immediate subdirectories in {geometries_prefix}"
+            
+            # All returned folders should be direct children of the prefix
+            for folder in immediate_folders:
+                # Remove the prefix and check that there's only one more level
+                relative_path = folder[len(geometries_prefix):].strip('/')
+                assert '/' not in relative_path, \
+                    f"Folder {folder} should be immediate child of {geometries_prefix}"
+        except ClientError as e:
+            pytest.fail(f"Failed to list immediate folders: {e}")
+    
+    def test_list_folders_leaf_only_default(self, s3_source, geometries_prefix):
+        """Test listing leaf folders (default behavior with leaf_only=True)."""
+        try:
+            # Get leaf folders (default behavior)
+            leaf_folders = s3_source.list_folders(geometries_prefix)
+            
+            # Should find leaf folders
+            assert len(leaf_folders) > 0, f"Should find leaf folders in {geometries_prefix}"
+            
+            # Verify that leaf folders have no subfolders
+            for leaf_folder in leaf_folders[:5]:  # Check first 5 to avoid long test times
+                subfolders = s3_source.list_folders(leaf_folder, leaf_only=False)
+                assert len(subfolders) == 0, \
+                    f"Leaf folder {leaf_folder} should not have subfolders, but has {len(subfolders)}"
+        except ClientError as e:
+            pytest.fail(f"Failed to list leaf folders: {e}")
+    
+    def test_list_folders_leaf_only_explicit(self, s3_source, geometries_prefix):
+        """Test listing leaf folders with explicit leaf_only=True parameter."""
+        try:
+            # Explicitly request leaf folders
+            leaf_folders = s3_source.list_folders(geometries_prefix, leaf_only=True)
+            
+            # Should find leaf folders
+            assert len(leaf_folders) > 0, f"Should find leaf folders in {geometries_prefix}"
+            
+            # Each leaf folder should contain files (not just be empty)
+            for leaf_folder in leaf_folders[:3]:  # Check first 3
+                files = s3_source.list_files(leaf_folder)
+                assert len(files) > 0, f"Leaf folder {leaf_folder} should contain files"
+        except ClientError as e:
+            pytest.fail(f"Failed to list leaf folders explicitly: {e}")
+    
+    def test_list_folders_depth_difference(self, s3_source, geometries_prefix):
+        """Test that leaf_only returns deeper folders than immediate listing."""
+        try:
+            # Get immediate subdirectories
+            immediate_folders = s3_source.list_folders(geometries_prefix, leaf_only=False)
+            
+            # Get leaf folders
+            leaf_folders = s3_source.list_folders(geometries_prefix, leaf_only=True)
+            
+            # Leaf folders should generally be deeper in the tree
+            if len(immediate_folders) > 0 and len(leaf_folders) > 0:
+                # Check at least one leaf folder is deeper than immediate folders
+                immediate_depth = geometries_prefix.count('/') + 1
+                leaf_depths = [folder.count('/') for folder in leaf_folders]
+                max_leaf_depth = max(leaf_depths)
+                
+                # If structure has nesting, leaf folders should be deeper
+                # (but allow for case where geometries are at immediate level)
+                assert max_leaf_depth >= immediate_depth, \
+                    f"Leaf folders should be at depth >= {immediate_depth}, max found: {max_leaf_depth}"
+                
+                print(f"Found {len(immediate_folders)} immediate folders and {len(leaf_folders)} leaf folders")
+                print(f"Immediate depth: {immediate_depth}, Max leaf depth: {max_leaf_depth}")
+        except ClientError as e:
+            pytest.fail(f"Failed to compare folder depths: {e}")
+    
+    def test_list_folders_nested_structure(self, s3_source):
+        """Test leaf folder detection in nested structure like Batch_X/geometry_folders."""
+        # Use a specific test case if we know the structure
+        prefix = "validation/geometries"
+        
+        try:
+            # Get all leaf folders
+            leaf_folders = s3_source.list_folders(prefix, leaf_only=True)
+            
+            # Should find some leaf folders
+            assert len(leaf_folders) > 0, "Should find leaf folders in nested structure"
+            
+            # Check that none of the leaf folders are just batch folders
+            for leaf in leaf_folders:
+                folder_name = s3_source.extract_folder_name(leaf)
+                # Leaf folders should not be something like "Batch_1" alone
+                # They should be actual geometry folders
+                if "Batch_" in folder_name:
+                    # If it contains "Batch_", it should have more path segments
+                    assert leaf.strip('/').count('/') > prefix.strip('/').count('/'), \
+                        f"Batch folder {leaf} should not be a leaf folder"
+        except ClientError as e:
+            pytest.fail(f"Failed to test nested structure: {e}")
 

@@ -30,17 +30,21 @@ class S3DataSource:
         
         logger.info(f"Initialized S3DataSource for bucket: {bucket}")
     
-    def list_folders(self, prefix: str, delimiter: str = '/') -> List[str]:
+    def list_folders(self, prefix: str, delimiter: str = '/', leaf_only: bool = True) -> List[str]:
         """
-        List all folder prefixes under a given path.
+        List folder prefixes under a given path.
         
         Args:
             prefix: S3 prefix to list
             delimiter: Delimiter for folder structure
+            leaf_only: If True, return only leaf folders (folders with no subfolders) recursively
             
         Returns:
             List of folder prefixes
         """
+        if leaf_only:
+            return self._list_leaf_folders_recursive(prefix)
+        
         folders = []
         continuation_token = None
         
@@ -78,6 +82,46 @@ class S3DataSource:
         
         logger.debug(f"Found {len(folders)} folders in {prefix}")
         return folders
+    
+    def _list_leaf_folders_recursive(self, prefix: str) -> List[str]:
+        """
+        Recursively find all leaf folders (folders with no subfolders).
+        
+        Args:
+            prefix: S3 prefix to search
+            
+        Returns:
+            List of leaf folder prefixes
+        """
+        leaf_folders = []
+        
+        # Ensure prefix ends with /
+        if prefix and not prefix.endswith('/'):
+            prefix = prefix + '/'
+        
+        # Get immediate subdirectories (non-recursive)
+        subfolders = self.list_folders(prefix, leaf_only=False)
+        
+        if not subfolders:
+            # No subfolders means this is a leaf folder (if it has files)
+            # Check if folder has any content
+            try:
+                response = self.s3_client.list_objects_v2(
+                    Bucket=self.bucket,
+                    Prefix=prefix,
+                    MaxKeys=1
+                )
+                if 'Contents' in response:
+                    leaf_folders.append(prefix)
+            except ClientError as e:
+                logger.error(f"Error checking folder {prefix}: {e}")
+        else:
+            # Recursively check each subfolder
+            for subfolder in subfolders:
+                leaf_folders.extend(self._list_leaf_folders_recursive(subfolder))
+        
+        logger.debug(f"Found {len(leaf_folders)} leaf folders in {prefix}")
+        return leaf_folders
     
     def list_files(self, prefix: str, extension: Optional[str] = None) -> List[str]:
         """

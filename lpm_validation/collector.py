@@ -82,15 +82,8 @@ class ValidationDataCollector:
             logger.warning(f"No metadata found in {geometry_folder}")
             return None
         
-        # Extract car name from baseline_id by removing _Symmetric suffix
-        baseline_id = metadata.get('baseline_id', '')
-        if baseline_id:
-            car_name = baseline_id.replace('_Symmetric', '')
-        else:
-            # Fall back to unique_id if no baseline_id
-            unique_id = metadata.get('unique_id', '')
-            car_name = unique_id.split('_Morph_')[0].replace('_Symmetric', '') if unique_id else 'Unknown'
-        
+        # Extract car name from baseline_id
+        car_name = metadata.get('baseline_id', '')
         car_group = self.config.car_groups.get(car_name, 'unknown')
         
         # Extract geometry name from folder path for use in unique_id fallback
