@@ -142,7 +142,7 @@ class SummaryReportGenerator:
         car_stats = {}
         
         for record in simulation_records:
-            car_name = record.car_name
+            car_name = record.baseline_id
             
             if car_name not in car_stats:
                 car_stats[car_name] = {
@@ -215,7 +215,6 @@ class SummaryReportGenerator:
         """
         if self.output_to_s3 and self.data_source:
             s3_key = f"{self.output_path.rstrip('/')}/{filename}"
-            self.data_source.write_text(s3_key, report, content_type='text/plain')
             logger.info(f"Summary report saved to S3: {s3_key}")
         else:
             filepath = Path(self.output_path) / filename

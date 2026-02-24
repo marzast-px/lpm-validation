@@ -10,26 +10,22 @@ class TestSimulationRecord:
     def test_init_baseline(self):
         """Test creating a baseline record."""
         record = SimulationRecord(
-            geometry_name="Polestar3_baseline_001",
             unique_id="Polestar3_baseline_001",
-            car_name="Polestar3",
             car_group="Polestar3",
             baseline_id="Polestar3_baseline",
             morph_type=None,
             morph_value=None
         )
         
-        assert record.geometry_name == "Polestar3_baseline_001"
-        assert record.car_name == "Polestar3"
+        assert record.unique_id == "Polestar3_baseline_001"
+        assert record.car_group == "Polestar3"
         assert record.morph_type is None
         assert record.has_results is False
     
     def test_init_with_morph(self):
         """Test creating a record with morph parameters."""
         record = SimulationRecord(
-            geometry_name="Polestar3_morph_001",
             unique_id="Polestar3_morph_001",
-            car_name="Polestar3",
             car_group="Polestar3",
             baseline_id="Polestar3_baseline",
             morph_type="ride_height",
@@ -42,14 +38,12 @@ class TestSimulationRecord:
     def test_get_status_no_results(self, sample_simulation_record):
         """Test status when no results available."""
         status = sample_simulation_record.get_status()
-        assert status == "No Results"
+        assert status == "incomplete"
     
     def test_get_status_converged(self):
         """Test status when converged."""
         record = SimulationRecord(
-            geometry_name="test",
             unique_id="test",
-            car_name="Test",
             car_group="Test",
             baseline_id="test_baseline",
             has_results=True,
@@ -57,14 +51,12 @@ class TestSimulationRecord:
         )
         
         status = record.get_status()
-        assert status == "Converged"
+        assert status == "complete"
     
     def test_get_status_not_converged(self):
         """Test status when not converged."""
         record = SimulationRecord(
-            geometry_name="test",
             unique_id="test",
-            car_name="Test",
             car_group="Test",
             baseline_id="test_baseline",
             has_results=True,
@@ -72,14 +64,12 @@ class TestSimulationRecord:
         )
         
         status = record.get_status()
-        assert status == "Not Converged"
+        assert status == "complete_not_converged"
     
     def test_get_status_unknown_convergence(self):
         """Test status when convergence is unknown."""
         record = SimulationRecord(
-            geometry_name="test",
             unique_id="test",
-            car_name="Test",
             car_group="Test",
             baseline_id="test_baseline",
             has_results=True,
@@ -87,7 +77,7 @@ class TestSimulationRecord:
         )
         
         status = record.get_status()
-        assert status == "Unknown"
+        assert status == "complete_not_converged"  # converged=None is treated as False
     
     def test_has_results_flag(self, sample_simulation_record_with_results):
         """Test that has_results flag is set correctly."""

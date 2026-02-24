@@ -59,7 +59,7 @@ class ValidationDataCollector:
                 record = self._create_simulation_record(geometry_folder)
                 if record:
                     # Apply car filter if provided
-                    if car_filter is None or record.car_name == car_filter:
+                    if car_filter is None or record.baseline_id == car_filter:
                         record_set.add(record)
             except Exception as e:
                 logger.error(f"Error processing {geometry_folder}: {e}")
@@ -86,9 +86,6 @@ class ValidationDataCollector:
             logger.warning(f"No metadata found in {geometry_folder}")
             return None
         
-        # Extract geometry name from folder path
-        geometry_name = self.data_source.extract_folder_name(geometry_folder)
-        
         # Extract car name from baseline_id by removing _Symmetric suffix
         baseline_id = metadata.get('baseline_id', '')
         if baseline_id:
@@ -100,17 +97,16 @@ class ValidationDataCollector:
         
         car_group = self.config.car_groups.get(car_name, 'unknown')
         
+        # Extract geometry name from folder path for use in unique_id fallback
+        geometry_name = self.data_source.extract_folder_name(geometry_folder)
+        
         # Create simulation record
         record = SimulationRecord(
-            car_name=car_name,
-            car_group=car_group,
-            geometry_name=geometry_name,
             unique_id=metadata.get('unique_id', geometry_name),
             baseline_id=metadata.get('baseline_id', ''),
+            car_group=car_group,
             morph_type=metadata.get('morph_type'),
-            morph_value=metadata.get('morph_value'),
-            morph_parameters=metadata.get('morph_parameters', {}),
-            s3_path=geometry_folder
+            morph_value=metadata.get('morph_value')
         )
         
         logger.debug(f"Created record: {record}")

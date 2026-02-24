@@ -12,28 +12,19 @@ def sample_records():
     """Create sample simulation records for testing."""
     records = [
         SimulationRecord(
-            car_name="test_car_a",
             car_group="group1",
-            geometry_name="geo1",
             unique_id="car_a_geo1",
-            baseline_id="baseline1",
-            s3_path="s3://bucket/geometries/car_a/geo1/"
+            baseline_id="baseline1"
         ),
         SimulationRecord(
-            car_name="test_car_a",
             car_group="group1",
-            geometry_name="geo2",
             unique_id="car_a_geo2",
-            baseline_id="baseline1",
-            s3_path="s3://bucket/geometries/car_a/geo2/"
+            baseline_id="baseline1"
         ),
         SimulationRecord(
-            car_name="test_car_b",
             car_group="group2",
-            geometry_name="geo3",
             unique_id="car_b_geo3",
-            baseline_id="baseline2",
-            s3_path="s3://bucket/geometries/car_b/geo3/"
+            baseline_id="baseline2"
         )
     ]
     

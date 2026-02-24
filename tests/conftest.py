@@ -56,9 +56,9 @@ def sample_config():
         results_prefix="test/results",
         output_path="./test_output",
         car_groups={
-            "Polestar3": "Polestar3",
-            "Polestar4": "Polestar4",
-            "EX90": "EX90"
+            "Polestar3": "Sedan",
+            "Polestar4": "Sedan",
+            "EX90": "SUV"
         }
     )
 
@@ -67,27 +67,11 @@ def sample_config():
 def sample_simulation_record():
     """Create sample SimulationRecord."""
     return SimulationRecord(
-        geometry_name="Polestar3_baseline_001",
         unique_id="Polestar3_baseline_001",
-        car_name="Polestar3",
-        car_group="Polestar3",
+        car_group="Sedan",
         baseline_id="Polestar3_baseline",
         morph_type=None,
         morph_value=None,
-        simulator=None,
-        converged=None,
-        cd=None,
-        cl=None,
-        drag_n=None,
-        lift_n=None,
-        avg_cd=None,
-        avg_cl=None,
-        avg_drag_n=None,
-        avg_lift_n=None,
-        std_cd=None,
-        std_cl=None,
-        std_drag_n=None,
-        std_lift_n=None,
         has_results=False
     )
 
@@ -96,10 +80,8 @@ def sample_simulation_record():
 def sample_simulation_record_with_results():
     """Create sample SimulationRecord with results."""
     return SimulationRecord(
-        geometry_name="Polestar3_baseline_001",
         unique_id="Polestar3_baseline_001",
-        car_name="Polestar3",
-        car_group="Polestar3",
+        car_group="Sedan",
         baseline_id="Polestar3_baseline",
         morph_type=None,
         morph_value=None,
@@ -113,10 +95,6 @@ def sample_simulation_record_with_results():
         avg_cl=0.0520,
         avg_drag_n=83.2,
         avg_lift_n=12.5,
-        std_cd=0.0002,
-        std_cl=0.0001,
-        std_drag_n=0.08,
-        std_lift_n=0.06,
         has_results=True
     )
 
@@ -149,4 +127,4 @@ def mock_s3_data_source(mock_s3_client):
     from unittest.mock import patch
     with patch('lpm_validation.s3_data_source.boto3.client', return_value=mock_s3_client):
         from lpm_validation.s3_data_source import S3DataSource
-        return S3DataSource(bucket_name="test-bucket")
+        return S3DataSource(bucket="sim-data")

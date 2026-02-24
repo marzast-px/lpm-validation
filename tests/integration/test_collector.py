@@ -34,16 +34,16 @@ class TestValidationDataCollector:
         
         # Mock discovery to return sample records in a record set
         record1 = SimulationRecord(
-            geometry_name="p3_001", unique_id="p3_001",
-            car_name="Polestar3", car_group="Polestar3",
-            baseline_id="p3_baseline", has_results=False,
-            s3_path="test/path"
+            unique_id="p3_001",
+            car_group="Polestar3",
+            baseline_id="p3_baseline",
+            has_results=False
         )
         record2 = SimulationRecord(
-            geometry_name="p3_002", unique_id="p3_002",
-            car_name="Polestar3", car_group="Polestar3",
-            baseline_id="p3_baseline", has_results=False,
-            s3_path="test/path"
+            unique_id="p3_002",
+            car_group="Polestar3",
+            baseline_id="p3_baseline",
+            has_results=False
         )
         
         record_set = SimulationRecordSet()
@@ -96,16 +96,16 @@ class TestValidationDataCollector:
         
         # Mock discovery to return sample records in a record set
         record1 = SimulationRecord(
-            geometry_name="bmw_001", unique_id="bmw_001",
-            car_name="BMW_IX", car_group="BMW_IX",
-            baseline_id="bmw_baseline", has_results=False,
-            s3_path="test/path"
+            unique_id="bmw_001",
+            car_group="BMW_IX",
+            baseline_id="bmw_baseline",
+            has_results=False
         )
         record2 = SimulationRecord(
-            geometry_name="bmw_002", unique_id="bmw_002",
-            car_name="BMW_IX", car_group="BMW_IX",
-            baseline_id="bmw_baseline", has_results=False,
-            s3_path="test/path"
+            unique_id="bmw_002",
+            car_group="BMW_IX",
+            baseline_id="bmw_baseline",
+            has_results=False
         )
         
         record_set = SimulationRecordSet()
@@ -122,6 +122,7 @@ class TestValidationDataCollector:
                 record1.has_results = True
                 record1.cd = 0.28
                 record1.cl = 0.03
+                record1.simulator = "DES"
                 record1.converged = True
             mock_find1.side_effect = set_results1
             mock_find2.side_effect = lambda *args, **kwargs: None  # Second record has no results
@@ -169,11 +170,12 @@ class TestValidationDataCollector:
         sample_config.output_path = str(tmp_path / "output")
         
         record = SimulationRecord(
-            geometry_name="p3_001", unique_id="p3_001",
-            car_name="Polestar3", car_group="Polestar3",
-            baseline_id="p3_baseline", has_results=True,
-            cd=0.34, cl=0.05,
-            s3_path="test/path"
+            unique_id="p3_001",
+            car_group="Polestar3",
+            baseline_id="p3_baseline",
+            has_results=True,
+            cd=0.34,
+            cl=0.05
         )
         
         record_set = SimulationRecordSet()

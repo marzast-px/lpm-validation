@@ -63,7 +63,7 @@ class SimulationRecordSet:
         grouped: Dict[str, SimulationRecordSet] = {}
         
         for record in self.records:
-            car_name = record.car_name
+            car_name = record.baseline_id
             if car_name not in grouped:
                 grouped[car_name] = SimulationRecordSet()
             grouped[car_name].add(record)
@@ -120,7 +120,7 @@ class SimulationRecordSet:
         car_stats: Dict[str, Dict[str, int]] = {}
         
         for record in self.records:
-            car_name = record.car_name
+            car_name = record.baseline_id
             
             if car_name not in car_stats:
                 car_stats[car_name] = {

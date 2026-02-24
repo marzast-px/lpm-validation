@@ -12,32 +12,23 @@ class SimulationRecord:
     """Data model representing a single simulation."""
     
     # Identification
-    car_name: str
-    car_group: str
-    geometry_name: str
-    unique_id: str
+    unique_id: str      # Input geometry identifier (e.g., "DrivAerFestback_Morph_101")
+    baseline_id: str    # Baseline geometry identifier (e.g., "DrivAerFestback")
     
-    # Metadata from geometry JSON
-    baseline_id: str
+    car_group: str      # Identifier of the car group (e.g., "Sedan", "SUV")
+    
+    # Geometry variant information from geometry JSON
     morph_type: Optional[str] = None
     morph_value: Optional[float] = None
-    morph_parameters: Dict[str, float] = field(default_factory=dict)
-    
-    # S3 path
-    s3_path: str = ""
     
     # Results data
     has_results: bool = False
     simulator: Optional[str] = None
     converged: Optional[bool] = None
     
-    # Force coefficients
+    # Force coefficients 
     cd: Optional[float] = None
     cl: Optional[float] = None
-    cd_front: Optional[float] = None
-    cl_front: Optional[float] = None
-    cl_rear: Optional[float] = None
-    cs: Optional[float] = None
     
     # Forces
     drag_n: Optional[float] = None
@@ -48,20 +39,17 @@ class SimulationRecord:
     avg_cl: Optional[float] = None
     avg_drag_n: Optional[float] = None
     avg_lift_n: Optional[float] = None
-    
-    # Statistical metrics
-    std_cd: Optional[float] = None
-    std_cl: Optional[float] = None
-    std_drag_n: Optional[float] = None
-    std_lift_n: Optional[float] = None
-    
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"SimulationRecord({self.unique_id}, {self.car_group}, status={self.get_status()})"
+        
     def set_metadata(self, baseline_id: str, morph_type: Optional[str], 
-                    morph_value: Optional[float], morph_parameters: Dict[str, float]):
+                    morph_value: Optional[float]):
         """Set simulation metadata."""
         self.baseline_id = baseline_id
         self.morph_type = morph_type
         self.morph_value = morph_value
-        self.morph_parameters = morph_parameters
     
     def set_results(self, converged: bool, simulator: str, **kwargs):
         """Set results data."""
@@ -77,7 +65,6 @@ class SimulationRecord:
     def is_complete(self) -> bool:
         """Check if all required data has been populated."""
         return (
-            self.car_name is not None and
             self.baseline_id is not None and
             self.has_results
         )
@@ -88,19 +75,13 @@ class SimulationRecord:
     
     def get_status(self) -> str:
         """Get processing status of this record."""
-        if not self.has_results:
-            return "pending"
-        elif self.is_complete():
+        if self.has_results:
             if self.converged:
                 return "complete"
             else:
                 return "complete_not_converged"
         else:
             return "incomplete"
-    
-    def __repr__(self) -> str:
-        """String representation."""
-        return f"SimulationRecord({self.car_name}, {self.geometry_name}, status={self.get_status()})"
     
     def find_and_extract_results(self, data_source, results_extractor, results_prefix: str, 
                                  simulator_filter: str = "JakubNet"):
@@ -142,11 +123,7 @@ class SimulationRecord:
             avg_cd=results.get('avg_cd'),
             avg_cl=results.get('avg_cl'),
             avg_drag_n=results.get('avg_drag_n'),
-            avg_lift_n=results.get('avg_lift_n'),
-            std_cd=results.get('std_cd'),
-            std_cl=results.get('std_cl'),
-            std_drag_n=results.get('std_drag_n'),
-            std_lift_n=results.get('std_lift_n')
+            avg_lift_n=results.get('avg_lift_n')
         )
         
         logger.debug(f"Updated record with results: converged={results.get('converged')}")
@@ -198,14 +175,14 @@ class SimulationRecord:
             List of column names
         """
         return [
-            'Name',
             'Unique_ID',
-            'Car_Name',
-            'Car_Group',
-            'Simulator',
             'Baseline_ID',
+            'Car_Group',
+            'Simulator',           
             'Morph_Type',
             'Morph_Value',
+            'Status'
+            'Has_Results',
             'Converged',
             'Cd',
             'Cl',
@@ -215,12 +192,6 @@ class SimulationRecord:
             'Avg_Cl',
             'Avg_Drag_N',
             'Avg_Lift_N',
-            'Std_Cd',
-            'Std_Cl',
-            'Std_Drag_N',
-            'Std_Lift_N',
-            'Has_Results',
-            'Status'
         ]
     
     def to_csv_row(self) -> Dict[str, Any]:
@@ -231,9 +202,7 @@ class SimulationRecord:
             Dictionary with column names as keys and formatted values
         """
         return {
-            'Name': self.geometry_name,
             'Unique_ID': self.unique_id,
-            'Car_Name': self.car_name,
             'Car_Group': self.car_group,
             'Simulator': self.simulator or '',
             'Baseline_ID': self.baseline_id,
@@ -248,10 +217,6 @@ class SimulationRecord:
             'Avg_Cl': f"{self.avg_cl:.6f}" if self.avg_cl is not None else '',
             'Avg_Drag_N': f"{self.avg_drag_n:.4f}" if self.avg_drag_n is not None else '',
             'Avg_Lift_N': f"{self.avg_lift_n:.4f}" if self.avg_lift_n is not None else '',
-            'Std_Cd': f"{self.std_cd:.6f}" if self.std_cd is not None else '',
-            'Std_Cl': f"{self.std_cl:.6f}" if self.std_cl is not None else '',
-            'Std_Drag_N': f"{self.std_drag_n:.4f}" if self.std_drag_n is not None else '',
-            'Std_Lift_N': f"{self.std_lift_n:.4f}" if self.std_lift_n is not None else '',
             'Has_Results': self.has_results,
             'Status': self.get_status()
         }

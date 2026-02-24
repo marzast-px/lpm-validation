@@ -20,19 +20,22 @@ class TestSummaryReportGenerator:
         
         records = [
             SimulationRecord(
-                geometry_name="p3_001", unique_id="p3_001",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True
+                unique_id="p3_001",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True
             ),
             SimulationRecord(
-                geometry_name="p3_002", unique_id="p3_002",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=False
+                unique_id="p3_002",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=False
             ),
             SimulationRecord(
-                geometry_name="ex90_001", unique_id="ex90_001",
-                car_name="EX90", car_group="EX90",
-                baseline_id="ex90_baseline", has_results=True
+                unique_id="ex90_001",
+                car_group="EX90",
+                baseline_id="ex90_baseline",
+                has_results=True
             ),
         ]
         
@@ -52,21 +55,24 @@ class TestSummaryReportGenerator:
         
         records = [
             SimulationRecord(
-                geometry_name="p3_001", unique_id="p3_001",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_001",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 simulator="JakubNet"
             ),
             SimulationRecord(
-                geometry_name="p3_002", unique_id="p3_002",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_002",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 simulator="DES"
             ),
             SimulationRecord(
-                geometry_name="p3_003", unique_id="p3_003",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_003",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 simulator="JakubNet"
             ),
         ]
@@ -84,27 +90,31 @@ class TestSummaryReportGenerator:
         
         records = [
             SimulationRecord(
-                geometry_name="p3_001", unique_id="p3_001",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_001",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 converged=True
             ),
             SimulationRecord(
-                geometry_name="p3_002", unique_id="p3_002",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_002",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 converged=False
             ),
             SimulationRecord(
-                geometry_name="p3_003", unique_id="p3_003",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
+                unique_id="p3_003",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
                 converged=None
             ),
             SimulationRecord(
-                geometry_name="p3_004", unique_id="p3_004",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=False
+                unique_id="p3_004",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=False
             ),
         ]
         
@@ -121,15 +131,18 @@ class TestSummaryReportGenerator:
         
         records = [
             SimulationRecord(
-                geometry_name="p3_001", unique_id="p3_001",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
-                simulator="JakubNet", converged=True
+                unique_id="p3_001",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=True,
+                simulator="JakubNet",
+                converged=True
             ),
             SimulationRecord(
-                geometry_name="p3_002", unique_id="p3_002",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=False
+                unique_id="p3_002",
+                car_group="Polestar3",
+                baseline_id="p3_baseline",
+                has_results=False
             ),
         ]
         
