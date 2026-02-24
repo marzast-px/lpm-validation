@@ -20,7 +20,6 @@ class TestValidationDataCollector:
         assert collector.config == sample_config
         assert collector.data_source is not None
         assert collector.metadata_extractor is not None
-        assert collector.results_extractor is not None
     
     @patch('lpm_validation.collector.S3DataSource')
     @patch('lpm_validation.collector.ValidationDataCollector.discover_all')

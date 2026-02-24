@@ -3,6 +3,7 @@
 import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field, asdict
+from lpm_validation.results_extractor import ResultsExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +84,13 @@ class SimulationRecord:
         else:
             return "incomplete"
     
-    def find_and_extract_results(self, data_source, results_extractor, results_prefix: str, 
+    def find_and_extract_results(self, data_source, results_prefix: str, 
                                  simulator_filter: str = "JakubNet"):
         """
         Find and extract results for this simulation record.
         
         Args:
             data_source: S3DataSource instance
-            results_extractor: ResultsExtractor instance
             results_prefix: S3 prefix for results
             simulator_filter: Simulator name to process (default: "JakubNet")
         """
@@ -104,7 +104,8 @@ class SimulationRecord:
         
         logger.debug(f"Found results for {self.unique_id} in {results_folder}")
         
-        # Extract results data
+        # Initialize results extractor and extract results data
+        results_extractor = ResultsExtractor(data_source)
         results = results_extractor.extract_simulation_results(results_folder, simulator)
         
         if not results:

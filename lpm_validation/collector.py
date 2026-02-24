@@ -7,7 +7,6 @@ from lpm_validation.s3_data_source import S3DataSource
 from lpm_validation.metadata_extractor import MetadataExtractor
 from lpm_validation.simulation_record import SimulationRecord
 from lpm_validation.simulation_record_set import SimulationRecordSet
-from lpm_validation.results_extractor import ResultsExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +29,6 @@ class ValidationDataCollector:
         
         # Initialize metadata extractor
         self.metadata_extractor = MetadataExtractor(self.data_source)
-        
-        # Initialize results extractor
-        self.results_extractor = ResultsExtractor(self.data_source)
     
     def discover_all(self, car_filter: Optional[str] = None) -> SimulationRecordSet:
         """
@@ -157,7 +153,6 @@ class ValidationDataCollector:
             for record in record_set:
                 record.find_and_extract_results(
                     self.data_source,
-                    self.results_extractor,
                     self.config.results_prefix,
                     simulator_filter=simulator_filter
                 )
