@@ -182,7 +182,7 @@ class SimulationRecord:
             'Simulator',           
             'Morph_Type',
             'Morph_Value',
-            'Status'
+            'Status',
             'Has_Results',
             'Converged',
             'Cd',

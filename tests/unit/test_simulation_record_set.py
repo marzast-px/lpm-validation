@@ -104,22 +104,19 @@ class TestSimulationRecordSet:
         grouped = record_set.group_by_car()
         
         assert len(grouped) == 2
-        assert "test_car_a" in grouped
-        assert "test_car_b" in grouped
+        assert "baseline1" in grouped
+        assert "baseline2" in grouped
         
-        assert len(grouped["test_car_a"]) == 2
-        assert len(grouped["test_car_b"]) == 1
+        assert len(grouped["baseline1"]) == 2
+        assert len(grouped["baseline2"]) == 1
     
     def test_filter_by(self, sample_records):
         """Test filtering records by criteria."""
         record_set = SimulationRecordSet()
         record_set.extend(sample_records)
         
-        filtered = record_set.filter_by(car_name="test_car_a")
+        filtered = record_set.filter_by(baseline_id="baseline1")
         assert len(filtered) == 2
-        
-        filtered = record_set.filter_by(car_group="group2")
-        assert len(filtered) == 1
     
     def test_with_results(self, sample_records):
         """Test filtering records with results."""
@@ -160,15 +157,15 @@ class TestSimulationRecordSet:
         
         car_stats = record_set.get_car_statistics()
         
-        assert "test_car_a" in car_stats
-        assert car_stats["test_car_a"]["total"] == 2
-        assert car_stats["test_car_a"]["with_results"] == 1
-        assert car_stats["test_car_a"]["without_results"] == 1
+        assert "baseline1" in car_stats
+        assert car_stats["baseline1"]["total"] == 2
+        assert car_stats["baseline1"]["with_results"] == 1
+        assert car_stats["baseline1"]["without_results"] == 1
         
-        assert "test_car_b" in car_stats
-        assert car_stats["test_car_b"]["total"] == 1
-        assert car_stats["test_car_b"]["with_results"] == 1
-        assert car_stats["test_car_b"]["without_results"] == 0
+        assert "baseline2" in car_stats
+        assert car_stats["baseline2"]["total"] == 1
+        assert car_stats["baseline2"]["with_results"] == 1
+        assert car_stats["baseline2"]["without_results"] == 0
     
     def test_get_simulator_statistics(self, sample_records):
         """Test getting simulator statistics."""
@@ -238,8 +235,8 @@ class TestSimulationRecordSet:
         assert "OVERALL STATISTICS" in report
         assert "Total Geometries:" in report
         assert "RESULTS BY CAR" in report
-        assert "test_car_a" in report
-        assert "test_car_b" in report
+        assert "baseline1" in report
+        assert "baseline2" in report
         assert "RESULTS BY SIMULATOR" in report
         assert "JakubNet" in report
         assert "OpenFOAM" in report

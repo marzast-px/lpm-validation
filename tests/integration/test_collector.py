@@ -34,14 +34,14 @@ class TestValidationDataCollector:
         # Mock discovery to return sample records in a record set
         record1 = SimulationRecord(
             unique_id="p3_001",
-            car_group="Polestar3",
-            baseline_id="p3_baseline",
+            car_group="Sedan",
+            baseline_id="Polestar3",
             has_results=False
         )
         record2 = SimulationRecord(
             unique_id="p3_002",
-            car_group="Polestar3",
-            baseline_id="p3_baseline",
+            car_group="Sedan",
+            baseline_id="Polestar3",
             has_results=False
         )
         
@@ -129,7 +129,7 @@ class TestValidationDataCollector:
             # Execute
             collector = ValidationDataCollector(config=sample_config)
             
-            result = collector.execute(car_filter="BMW_IX", simulator_filter="DES")
+            result = collector.execute(car_filter="bmw_baseline", simulator_filter="DES")
             
             # Verify result
             assert result['status'] == 'success'
@@ -138,7 +138,7 @@ class TestValidationDataCollector:
             assert result['without_results'] == 1
             
             # Verify CSV was created with correct naming
-            csv_file = Path(sample_config.output_path) / "DES_BMW_IX.csv"
+            csv_file = Path(sample_config.output_path) / "DES_bmw_baseline.csv"
             assert csv_file.exists()
             
             # Verify summary report was created
