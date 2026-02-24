@@ -38,7 +38,7 @@ def sample_results_json(fixtures_dir):
 @pytest.fixture
 def sample_force_series_csv(fixtures_dir):
     """Return path to sample force series CSV."""
-    return str(fixtures_dir / "Force_Series.csv")
+    return str(fixtures_dir / "export_force_series.csv")
 
 
 @pytest.fixture

@@ -1,12 +1,29 @@
 {
-  "Lift_100[N]": 125.5,
-  "Drag_100[N]": 85.3,
-  "Converged_Flag": true,
-  "reference_density": 1.225,
-  "reference_velocity": 27.78,
-  "reference_area": 2.5,
-  "simulation_time": 450.0,
-  "iterations": 5000,
-  "solver": "JakubNet",
-  "timestamp": "2026-01-20T14:25:00Z"
+  "setup": {
+    "starccm": "/mnt/data/sim/apps/star_ccm_2510.0001_mixed/20.06.010/STAR-CCM+20.06.010/star/bin/starccm+",
+    "template": "/mnt/data/sim/templates/Aero_Template_Zephyr_Coupled_Refined_v2510_v3.sim"
+  },
+  "parameters": {
+    "Ref_Density[kg/m^3]": 1.225,
+    "Ref_Velocity[m/s]": 30.0,
+    "Ref_AbsPressure[Pa]": 101325.0,
+    "A[m^2]": 1.1131598667087552,
+    "Wheel_Center_Front[m]": {
+       "x": -1.5174619142091703,
+       "y": -0.8173130125236164,
+       "z": 0.35020053384798067
+    },
+    "Wheel_Center_Rear[m]": {
+       "x": 1.3537880129580837,
+       "y": -0.8148627914633677,
+       "z": 0.3502147362098337
+    }
+  },
+  "results": {
+    "Lift[N]": 48.70309033854952,
+    "Lift_100[N]": 48.847592430907355,
+    "Drag[N]": 169.87672603383552,
+    "Drag_100[N]": 170.04170420635143,
+    "Converged_Flag": 1.0
+  }
 }

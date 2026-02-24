@@ -1,7 +1,7 @@
 """Summary report generator module."""
 
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 from lpm_validation.simulation_record import SimulationRecord
 from lpm_validation.s3_data_source import S3DataSource
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class SummaryReportGenerator:
     """Generates summary reports of validation data."""
     
-    def __init__(self, output_path: str, data_source: S3DataSource = None, output_to_s3: bool = False):
+    def __init__(self, output_path: str, data_source: Optional[S3DataSource] = None, output_to_s3: bool = False):
         """
         Initialize summary report generator.
         

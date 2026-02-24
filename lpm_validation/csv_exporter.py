@@ -3,7 +3,7 @@
 import csv
 import logging
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from lpm_validation.simulation_record import SimulationRecord
 from lpm_validation.s3_data_source import S3DataSource
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CSVExporter:
     """Exports simulation records to CSV files."""
     
-    def __init__(self, output_path: str, data_source: S3DataSource = None, output_to_s3: bool = False):
+    def __init__(self, output_path: str, data_source: Optional[S3DataSource] = None, output_to_s3: bool = False):
         """
         Initialize CSV exporter.
         

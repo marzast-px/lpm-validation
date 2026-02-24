@@ -7,6 +7,7 @@ from lpm_validation.s3_data_source import S3DataSource
 
 logger = logging.getLogger(__name__)
 
+# TODO: Review how to deal with series & link this closer with simulation record
 
 class ResultsExtractor:
     """Extracts and processes results data from simulation outputs."""
@@ -20,53 +21,52 @@ class ResultsExtractor:
         """
         self.data_source = data_source
     
-    def extract_from_folder(self, results_folder: str, simulator: str = "JakubNet") -> Optional[Dict[str, Any]]:
+    def extract_simulation_results(self, results_folder: str, simulator: str = "JakubNet", signal_length: int = 300) -> Optional[Dict[str, Any]]:
         """
         Extract all results data from a results folder.
         
+        This is the main method to be called by other classes.
+        
         Args:
             results_folder: S3 path to results folder
-            simulator: Simulator name (for coefficient calculation)
+            simulator: Simulator name
+            signal_length: Number of entries to average from force series (default: 300)
             
         Returns:
             Dictionary with extracted results or None
         """
-        # Look for results JSON
-        json_files = self.data_source.list_files(results_folder, extension='.json')
-        
-        if not json_files:
-            logger.warning(f"No JSON files found in {results_folder}")
-            return None
-        
-        # Read the first JSON file
-        json_path = json_files[0]
+        # Read export_scalars.json
+        folder_name = results_folder.rstrip('/').split('/')[-1]
+        json_path = f"{results_folder.rstrip('/')}/export_scalars.json"
         json_data = self.data_source.read_json(json_path)
         
         if not json_data:
+            logger.warning(f"No JSON data found at {json_path}")
             return None
         
         results = {}
         
         # Extract from JSON
-        results.update(self.extract_from_json(json_data))
+        results.update(self._extract_from_json(json_data))
         
-        # Try to extract from force series CSV
-        csv_files = self.data_source.list_files(results_folder, extension='.csv')
-        force_series_files = [f for f in csv_files if 'force_series' in f or 'export_force_series' in f]
+        # Try to extract from export_force_series.csv
+        csv_path = f"{results_folder.rstrip('/')}/export_force_series.csv"
+        series_data = self.data_source.read_csv(csv_path)
         
-        if force_series_files:
-            csv_path = force_series_files[0]
-            series_data = self.data_source.read_csv(csv_path)
-            
-            if series_data:
-                series_results = self.extract_from_force_series(series_data, json_data.get('parameters', {}))
-                results.update(series_results)
+        if series_data:
+            parameters = json_data.get('parameters', {})
+            series_results = self._extract_from_force_series(
+                series_data, 
+                parameters,
+                signal_length=signal_length
+            )
+            results.update(series_results)
         
         results['simulator'] = simulator
         
         return results
     
-    def extract_from_json(self, json_data: Dict) -> Dict[str, Any]:
+    def _extract_from_json(self, json_data: Dict) -> Dict[str, Any]:
         """
         Extract results from JSON data.
         
@@ -92,9 +92,8 @@ class ResultsExtractor:
         area = parameters.get('A[m^2]', 1.0)
         
         # Calculate coefficients
-        cd, cl = None, None
-        if drag_100 is not None and lift_100 is not None:
-            cd, cl = self.calculate_coefficients(drag_100, lift_100, density, velocity, area)
+        cd = self._calculate_coefficient(drag_100, density, velocity, area) if drag_100 is not None else None
+        cl = self._calculate_coefficient(lift_100, density, velocity, area) if lift_100 is not None else None
         
         return {
             'converged': converged,
@@ -107,133 +106,104 @@ class ResultsExtractor:
             'area': area
         }
     
-    def extract_from_force_series(self, series_data: list, parameters: Dict) -> Dict[str, Any]:
+    def _extract_from_force_series(self, series_data: list, parameters: Dict, signal_length: int = 300) -> Dict[str, Any]:
         """
         Extract and process force series data.
         
         Args:
             series_data: List of CSV rows as dictionaries
             parameters: Reference parameters from JSON
+            signal_length: Number of last entries to extract and average
             
         Returns:
-            Dictionary with averaged and statistical data
+            Dictionary with averaged force values and statistics
         """
         if not series_data:
             return {}
         
-        # Get reference parameters
+        # Get reference parameters for coefficient calculation
         density = parameters.get('Ref_Density[kg/m^3]', 1.225)
         velocity = parameters.get('Ref_Velocity[m/s]', 30.0)
         area = parameters.get('A[m^2]', 1.0)
         
-        # Extract data from last 300 iterations
-        n_avg = min(300, len(series_data))
+        # Extract data from last n entries
+        n_avg = min(signal_length, len(series_data))
         last_n = series_data[-n_avg:]
         
-        # Extract coefficient and force values
-        cd_values = []
-        cl_values = []
-        drag_values = []
-        lift_values = []
+        # Extract drag force values
+        drag_values = self._extract_force_from_series(
+            last_n, 
+            'Drag Monitor: Drag Monitor (N)'
+        )
         
-        for row in last_n:
-            try:
-                # Try different column name patterns
-                cd_val = self._extract_value(row, ['Cd Monitor: Cd Monitor', 'Cd', 'cd'])
-                cl_val = self._extract_value(row, ['Cl Monitor: Cl Monitor', 'Cl', 'cl'])
-                drag_val = self._extract_value(row, ['Drag Monitor: Drag Monitor (N)', 'Drag', 'drag'])
-                lift_val = self._extract_value(row, ['Lift Monitor: Lift Monitor (N)', 'Lift', 'lift'])
-                
-                if cd_val is not None:
-                    cd_values.append(float(cd_val))
-                if cl_val is not None:
-                    cl_values.append(float(cl_val))
-                if drag_val is not None:
-                    drag_values.append(float(drag_val))
-                if lift_val is not None:
-                    lift_values.append(float(lift_val))
-                    
-            except (ValueError, TypeError) as e:
-                logger.debug(f"Skipping row due to conversion error: {e}")
-                continue
+        # Extract lift force values
+        lift_values = self._extract_force_from_series(
+            last_n,
+            'Lift Monitor: Lift Monitor (N)'
+        )
         
         results = {}
         
-        # Calculate averages
-        if cd_values:
-            results['avg_cd'] = np.mean(cd_values)
-            results['std_cd'] = np.std(cd_values)
-        
-        if cl_values:
-            results['avg_cl'] = np.mean(cl_values)
-            results['std_cl'] = np.std(cl_values)
-        
+        # Calculate drag statistics and coefficient
         if drag_values:
-            results['avg_drag_n'] = np.mean(drag_values)
+            avg_drag = np.mean(drag_values)
+            results['avg_drag_n'] = avg_drag
             results['std_drag_n'] = np.std(drag_values)
-            
-            # Calculate Cd from averaged drag if not already available
-            if 'avg_cd' not in results:
-                cd_from_drag, _ = self.calculate_coefficients(
-                    results['avg_drag_n'], 0, density, velocity, area
-                )
-                results['avg_cd'] = cd_from_drag
+            results['avg_cd'] = self._calculate_coefficient(float(avg_drag), density, velocity, area)
         
+        # Calculate lift statistics and coefficient
         if lift_values:
-            results['avg_lift_n'] = np.mean(lift_values)
+            avg_lift = np.mean(lift_values)
+            results['avg_lift_n'] = avg_lift
             results['std_lift_n'] = np.std(lift_values)
-            
-            # Calculate Cl from averaged lift if not already available
-            if 'avg_cl' not in results:
-                _, cl_from_lift = self.calculate_coefficients(
-                    0, results['avg_lift_n'], density, velocity, area
-                )
-                results['avg_cl'] = cl_from_lift
+            results['avg_cl'] = self._calculate_coefficient(float(avg_lift), density, velocity, area)
         
         logger.debug(f"Averaged {n_avg} iterations: avg_cd={results.get('avg_cd')}, avg_cl={results.get('avg_cl')}")
         
         return results
     
-    def _extract_value(self, row: Dict, possible_keys: list) -> Optional[float]:
+    def _extract_force_from_series(self, series_data: list, column_name: str) -> list:
         """
-        Extract value from row trying multiple possible keys.
+        Extract force values from a specific column in the series data.
         
         Args:
-            row: CSV row dictionary
-            possible_keys: List of possible column names
+            series_data: List of CSV rows as dictionaries
+            column_name: Column name to extract (e.g., 'Drag Monitor: Drag Monitor (N)')
             
         Returns:
-            Extracted value or None
+            List of force values
         """
-        for key in possible_keys:
-            if key in row:
-                return row[key]
-        return None
+        values = []
+        for row in series_data:
+            try:
+                if column_name in row and row[column_name]:
+                    values.append(float(row[column_name]))
+            except (ValueError, TypeError) as e:
+                logger.debug(f"Skipping row due to conversion error: {e}")
+                continue
+        return values
     
     @staticmethod
-    def calculate_coefficients(drag_n: float, lift_n: float, 
-                               density: float, velocity: float, area: float) -> tuple:
+    def _calculate_coefficient(force_n: float, density: float, velocity: float, area: float) -> Optional[float]:
         """
-        Calculate drag and lift coefficients.
+        Calculate aerodynamic coefficient from force.
         
         Formula: C = 2 * Force / (density * velocity^2 * area)
         
         Args:
-            drag_n: Drag force in Newtons
-            lift_n: Lift force in Newtons
+            force_n: Force in Newtons
             density: Air density (kg/m^3)
             velocity: Reference velocity (m/s)
             area: Reference area (m^2)
             
         Returns:
-            Tuple of (Cd, Cl)
+            Coefficient value or None if dynamic pressure is zero
         """
         dynamic_pressure_area = density * velocity**2 * area
         
         if dynamic_pressure_area == 0:
-            return None, None
+            return None
         
-        cd = 2.0 * drag_n / dynamic_pressure_area
-        cl = 2.0 * lift_n / dynamic_pressure_area
+        coefficient = 2.0 * force_n / dynamic_pressure_area
         
-        return cd, cl
+        return coefficient

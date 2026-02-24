@@ -1,7 +1,10 @@
 """Data models for simulation records."""
 
+import logging
 from typing import Optional, Dict, Any
 from dataclasses import dataclass, field, asdict
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -98,3 +101,86 @@ class SimulationRecord:
     def __repr__(self) -> str:
         """String representation."""
         return f"SimulationRecord({self.car_name}, {self.geometry_name}, status={self.get_status()})"
+    
+    def find_and_extract_results(self, data_source, results_extractor, results_prefix: str):
+        """
+        Find and extract results for this simulation record.
+        
+        Args:
+            data_source: S3DataSource instance
+            results_extractor: ResultsExtractor instance
+            results_prefix: S3 prefix for results
+        """
+        # Find matching results folder
+        results_folder, simulator = self._find_results_folder(data_source, results_prefix)
+        
+        if not results_folder:
+            logger.debug(f"No results found for {self.unique_id}")
+            self.has_results = False
+            return
+        
+        logger.debug(f"Found results for {self.unique_id} in {results_folder}")
+        
+        # Extract results data
+        results = results_extractor.extract_simulation_results(results_folder, simulator)
+        
+        if not results:
+            logger.warning(f"Failed to extract results from {results_folder}")
+            self.has_results = False
+            return
+        
+        # Update with results
+        self.set_results(
+            converged=results.get('converged', False),
+            simulator=simulator,
+            cd=results.get('cd'),
+            cl=results.get('cl'),
+            drag_n=results.get('drag_n'),
+            lift_n=results.get('lift_n'),
+            avg_cd=results.get('avg_cd'),
+            avg_cl=results.get('avg_cl'),
+            avg_drag_n=results.get('avg_drag_n'),
+            avg_lift_n=results.get('avg_lift_n'),
+            std_cd=results.get('std_cd'),
+            std_cl=results.get('std_cl'),
+            std_drag_n=results.get('std_drag_n'),
+            std_lift_n=results.get('std_lift_n')
+        )
+        
+        logger.debug(f"Updated record with results: converged={results.get('converged')}")
+    
+    def _find_results_folder(self, data_source, results_prefix: str) -> tuple[Optional[str], str]:
+        """
+        Find the results folder matching this simulation's unique_id.
+        
+        Args:
+            data_source: S3DataSource instance
+            results_prefix: S3 prefix for results
+            
+        Returns:
+            Tuple of (results_folder_path, simulator_name) or (None, "")
+        """
+        # List all folders under results_prefix
+        all_folders = data_source.list_folders(results_prefix)
+        
+        # Look for exact match or match with simulator prefix
+        for folder in all_folders:
+            folder_name = data_source.extract_folder_name(folder)
+            
+            # Check for exact match (baseline/JakubNet)
+            if folder_name == self.unique_id:
+                return folder, "JakubNet"
+            
+            # Check for match with simulator prefix
+            # Format: <SIMULATOR_PREFIX>_<unique_id>
+            if self.unique_id in folder_name:
+                # Extract simulator prefix
+                simulator = folder_name.replace(f"_{self.unique_id}", "").replace(self.unique_id, "")
+                if simulator:
+                    simulator = simulator.strip('_')
+                else:
+                    simulator = "JakubNet"
+                
+                return folder, simulator
+        
+        return None, ""

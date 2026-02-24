@@ -6,7 +6,7 @@ from lpm_validation.config import Configuration
 from lpm_validation.s3_data_source import S3DataSource
 from lpm_validation.metadata_extractor import MetadataExtractor
 from lpm_validation.simulation_record import SimulationRecord
-from lpm_validation.results_matcher import ResultsMatcher
+from lpm_validation.results_extractor import ResultsExtractor
 from lpm_validation.csv_exporter import CSVExporter
 from lpm_validation.summary_report import SummaryReportGenerator
 
@@ -34,12 +34,10 @@ class ValidationDataCollector:
         # Initialize metadata extractor
         self.metadata_extractor = MetadataExtractor(self.data_source)
         
-        # Initialize components
-        self.matcher = ResultsMatcher(
-            config=config,
-            data_source=self.data_source
-        )
+        # Initialize results extractor
+        self.results_extractor = ResultsExtractor(self.data_source)
         
+        # Initialize components
         self.exporter = CSVExporter(
             output_path=config.output_path,
             data_source=self.data_source if output_to_s3 else None,
@@ -173,7 +171,13 @@ class ValidationDataCollector:
             logger.info("PHASE 2: RESULTS MATCHING")
             logger.info("-" * 80)
             
-            simulation_records = self.matcher.match_all(simulation_records)
+            # Match results for each simulation record
+            for record in simulation_records:
+                record.find_and_extract_results(
+                    self.data_source,
+                    self.results_extractor,
+                    self.config.results_prefix
+                )
             
             with_results = sum(1 for r in simulation_records if r.has_results)
             without_results = len(simulation_records) - with_results
