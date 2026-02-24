@@ -1,4 +1,13 @@
-"""Summary report generator module."""
+"""Summary report generator module.
+
+DEPRECATED: This class has been deprecated in favor of SimulationRecordSet.
+    Summary report functionality is now provided by:
+    - SimulationRecordSet.generate_summary_report()
+    - SimulationRecordSet.save_summary_report()
+    
+    Note: S3 write functionality has been removed from the codebase.
+    Use SimulationRecordSet for new code.
+"""
 
 import logging
 from typing import List, Dict, Optional
@@ -10,7 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 class SummaryReportGenerator:
-    """Generates summary reports of validation data."""
+    """
+    Generates summary reports of validation data.
+    
+    DEPRECATED: Use SimulationRecordSet.generate_summary_report() instead.
+    """
     
     def __init__(self, output_path: str, data_source: Optional[S3DataSource] = None, output_to_s3: bool = False):
         """

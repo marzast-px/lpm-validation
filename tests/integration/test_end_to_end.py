@@ -67,10 +67,7 @@ class TestEndToEnd:
         mock_boto_client.return_value = mock_s3
         
         # Execute workflow
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         result = collector.execute()
         
@@ -138,10 +135,7 @@ class TestEndToEnd:
         )
         mock_boto_client.return_value = mock_s3
         
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         # Should handle error gracefully
         with pytest.raises(Exception):

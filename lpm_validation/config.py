@@ -16,7 +16,6 @@ class Configuration:
         output_path: str = "./output",
         car_groups: Optional[Dict[str, str]] = None,
         aws_profile: str = "coreweave",
-        output_to_s3: bool = False,
         max_workers: int = 10
     ):
         """
@@ -26,10 +25,9 @@ class Configuration:
             s3_bucket: S3 bucket name containing simulation data
             geometries_prefix: S3 prefix for geometry data
             results_prefix: S3 prefix for results data
-            output_path: Local or S3 path for output files
+            output_path: Local path for output files
             car_groups: Dictionary mapping car names to groups (sedan, SUV, etc.)
             aws_profile: AWS profile name (default: 'coreweave')
-            output_to_s3: Whether to save output to S3
             max_workers: Number of workers for concurrent processing
         """
         self.s3_bucket = s3_bucket
@@ -38,7 +36,6 @@ class Configuration:
         self.output_path = output_path
         self.car_groups = car_groups or {}
         self.aws_profile = aws_profile
-        self.output_to_s3 = output_to_s3
         self.max_workers = max_workers
         
         self.validate()
@@ -88,6 +85,5 @@ class Configuration:
             'output_path': self.output_path,
             'car_groups': self.car_groups,
             'aws_profile': self.aws_profile,
-            'output_to_s3': self.output_to_s3,
             'max_workers': self.max_workers
         }

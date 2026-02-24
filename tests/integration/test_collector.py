@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch, MagicMock
 from lpm_validation.config import Configuration
 from lpm_validation.collector import ValidationDataCollector
 from lpm_validation.simulation_record import SimulationRecord
+from lpm_validation.simulation_record_set import SimulationRecordSet
 
 
 class TestValidationDataCollector:
@@ -14,18 +15,12 @@ class TestValidationDataCollector:
     @patch('lpm_validation.collector.S3DataSource')
     def test_initialization(self, mock_s3_class, sample_config):
         """Test collector initialization."""
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         assert collector.config == sample_config
-        assert collector.output_to_s3 is False
         assert collector.data_source is not None
         assert collector.metadata_extractor is not None
         assert collector.results_extractor is not None
-        assert collector.exporter is not None
-        assert collector.report_generator is not None
     
     @patch('lpm_validation.collector.S3DataSource')
     @patch('lpm_validation.collector.ValidationDataCollector.discover_all')
@@ -37,7 +32,7 @@ class TestValidationDataCollector:
         # Override output path for testing
         sample_config.output_path = str(tmp_path / "output")
         
-        # Mock discovery to return sample records
+        # Mock discovery to return sample records in a record set
         record1 = SimulationRecord(
             geometry_name="p3_001", unique_id="p3_001",
             car_name="Polestar3", car_group="Polestar3",
@@ -50,8 +45,11 @@ class TestValidationDataCollector:
             baseline_id="p3_baseline", has_results=False,
             s3_path="test/path"
         )
-        mock_records = [record1, record2]
-        mock_discover.return_value = mock_records
+        
+        record_set = SimulationRecordSet()
+        record_set.add(record1)
+        record_set.add(record2)
+        mock_discover.return_value = record_set
         
         # Mock find_and_extract_results on the records
         with patch.object(record1, 'find_and_extract_results') as mock_find1, \
@@ -68,10 +66,7 @@ class TestValidationDataCollector:
             mock_find2.side_effect = lambda *args: None  # Second record has no results
             
             # Execute
-            collector = ValidationDataCollector(
-                config=sample_config,
-                output_to_s3=False
-            )
+            collector = ValidationDataCollector(config=sample_config)
             
             result = collector.execute()
             
@@ -95,12 +90,9 @@ class TestValidationDataCollector:
         self, mock_discover, mock_s3_class, sample_config
     ):
         """Test execution when no geometries are found."""
-        mock_discover.return_value = []
+        mock_discover.return_value = SimulationRecordSet()
         
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         result = collector.execute()
         
@@ -115,20 +107,19 @@ class TestValidationDataCollector:
         """Test execution with car filter."""
         sample_config.output_path = str(tmp_path / "output")
         
-        mock_records = [
-            SimulationRecord(
-                geometry_name="p3_001", unique_id="p3_001",
-                car_name="Polestar3", car_group="Polestar3",
-                baseline_id="p3_baseline", has_results=True,
-                cd=0.34, cl=0.05
-            ),
-        ]
-        mock_discover.return_value = mock_records
-        
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
+        record = SimulationRecord(
+            geometry_name="p3_001", unique_id="p3_001",
+            car_name="Polestar3", car_group="Polestar3",
+            baseline_id="p3_baseline", has_results=True,
+            cd=0.34, cl=0.05,
+            s3_path="test/path"
         )
+        
+        record_set = SimulationRecordSet()
+        record_set.add(record)
+        mock_discover.return_value = record_set
+        
+        collector = ValidationDataCollector(config=sample_config)
         
         result = collector.execute(car_filter="Polestar3")
         
@@ -146,10 +137,7 @@ class TestValidationDataCollector:
         }
         mock_boto_client.return_value = mock_s3
         
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         success = collector.test_connection()
         
@@ -163,10 +151,7 @@ class TestValidationDataCollector:
         mock_s3.list_objects_v2.side_effect = Exception("Connection failed")
         mock_boto_client.return_value = mock_s3
         
-        collector = ValidationDataCollector(
-            config=sample_config,
-            output_to_s3=False
-        )
+        collector = ValidationDataCollector(config=sample_config)
         
         success = collector.test_connection()
         

@@ -1,4 +1,9 @@
-"""Unit tests for summary_report module."""
+"""Unit tests for summary_report module.
+
+DEPRECATED: SummaryReportGenerator class is deprecated.
+    These tests are kept for backwards compatibility but should not be extended.
+    Use test_simulation_record_set.py for new summary report tests.
+"""
 
 import pytest
 from pathlib import Path
@@ -7,7 +12,7 @@ from lpm_validation.simulation_record import SimulationRecord
 
 
 class TestSummaryReportGenerator:
-    """Test SummaryReportGenerator class."""
+    """Test SummaryReportGenerator class (DEPRECATED)."""
     
     def test_calculate_car_statistics(self):
         """Test calculating statistics by car."""

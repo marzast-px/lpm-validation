@@ -1,14 +1,13 @@
 """Main validation data collector orchestrator."""
 
 import logging
-from typing import Optional, List
+from typing import Optional
 from lpm_validation.config import Configuration
 from lpm_validation.s3_data_source import S3DataSource
 from lpm_validation.metadata_extractor import MetadataExtractor
 from lpm_validation.simulation_record import SimulationRecord
+from lpm_validation.simulation_record_set import SimulationRecordSet
 from lpm_validation.results_extractor import ResultsExtractor
-from lpm_validation.csv_exporter import CSVExporter
-from lpm_validation.summary_report import SummaryReportGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +15,14 @@ logger = logging.getLogger(__name__)
 class ValidationDataCollector:
     """Orchestrates the validation data collection process."""
     
-    def __init__(self, config: Configuration, output_to_s3: bool = False):
+    def __init__(self, config: Configuration):
         """
         Initialize the validation data collector.
         
         Args:
             config: Configuration instance
-            output_to_s3: Whether to output to S3 (default: False for local)
         """
         self.config = config
-        self.output_to_s3 = output_to_s3
         
         # Initialize S3 data source
         logger.info(f"Initializing S3 data source for bucket: {config.s3_bucket}")
@@ -36,31 +33,18 @@ class ValidationDataCollector:
         
         # Initialize results extractor
         self.results_extractor = ResultsExtractor(self.data_source)
-        
-        # Initialize components
-        self.exporter = CSVExporter(
-            output_path=config.output_path,
-            data_source=self.data_source if output_to_s3 else None,
-            output_to_s3=output_to_s3
-        )
-        
-        self.report_generator = SummaryReportGenerator(
-            output_path=config.output_path,
-            data_source=self.data_source if output_to_s3 else None,
-            output_to_s3=output_to_s3
-        )
     
-    def discover_all(self, car_filter: Optional[str] = None) -> List[SimulationRecord]:
+    def discover_all(self, car_filter: Optional[str] = None) -> SimulationRecordSet:
         """
-        Discover all simulations in the geometry folder structure.
+        Discover all geometries in the geometry folder structure.
         
         Args:
             car_filter: Optional car name to filter (processes only this car)
             
         Returns:
-            List of SimulationRecord instances
+            SimulationRecordSet instance containing all discovered geometries
         """
-        simulation_records = []
+        record_set = SimulationRecordSet()
         geometries_prefix = self.config.geometries_prefix
         
         logger.info(f"Starting discovery in {geometries_prefix}")
@@ -76,14 +60,14 @@ class ValidationDataCollector:
                 if record:
                     # Apply car filter if provided
                     if car_filter is None or record.car_name == car_filter:
-                        simulation_records.append(record)
+                        record_set.add(record)
             except Exception as e:
                 logger.error(f"Error processing {geometry_folder}: {e}")
                 continue
         
-        logger.info(f"Discovery complete. Found {len(simulation_records)} simulations")
+        logger.info(f"Discovery complete. Found {len(record_set)} simulations")
         
-        return simulation_records
+        return record_set
     
     def _create_simulation_record(self, geometry_folder: str) -> Optional[SimulationRecord]:
         """
@@ -133,12 +117,13 @@ class ValidationDataCollector:
         
         return record
     
-    def execute(self, car_filter: Optional[str] = None) -> dict:
+    def execute(self, car_filter: Optional[str] = None, simulator_filter: str = "JakubNet") -> dict:
         """
         Execute the complete validation data collection workflow.
         
         Args:
             car_filter: Optional car name to filter (processes only this car)
+            simulator_filter: Simulator name to process (default: "JakubNet")
             
         Returns:
             Dictionary with execution statistics
@@ -153,11 +138,11 @@ class ValidationDataCollector:
             logger.info("PHASE 1: GEOMETRY DISCOVERY")
             logger.info("-" * 80)
             
-            simulation_records = self.discover_all(car_filter=car_filter)
+            record_set = self.discover_all(car_filter=car_filter)
             
-            logger.info(f"Discovered {len(simulation_records)} geometries")
+            logger.info(f"Discovered {len(record_set)} geometries")
             
-            if len(simulation_records) == 0:
+            if len(record_set) == 0:
                 logger.warning("No geometries found. Exiting.")
                 return {
                     'status': 'no_geometries',
@@ -170,35 +155,37 @@ class ValidationDataCollector:
             logger.info("")
             logger.info("PHASE 2: RESULTS MATCHING")
             logger.info("-" * 80)
+            logger.info(f"Processing simulator: {simulator_filter}")
             
             # Match results for each simulation record
-            for record in simulation_records:
+            for record in record_set:
                 record.find_and_extract_results(
                     self.data_source,
                     self.results_extractor,
-                    self.config.results_prefix
+                    self.config.results_prefix,
+                    simulator_filter=simulator_filter
                 )
             
-            with_results = sum(1 for r in simulation_records if r.has_results)
-            without_results = len(simulation_records) - with_results
+            with_results = record_set.count_with_results()
+            without_results = record_set.count_without_results()
             
-            logger.info(f"Results matched: {with_results}/{len(simulation_records)} geometries have results")
+            logger.info(f"Results matched: {with_results}/{len(record_set)} geometries have results")
             
             # PHASE 3: Export
             logger.info("")
             logger.info("PHASE 3: DATA EXPORT")
             logger.info("-" * 80)
             
-            self.exporter.export_grouped_by_car(simulation_records)
-            
-            logger.info(f"CSV files exported to {'S3' if self.output_to_s3 else 'local'}: {self.config.output_path}")
+            record_set.to_csv(self.config.output_path, group_by_car=True, simulator=simulator_filter)
+            logger.info(f"CSV files exported to: {self.config.output_path}")
             
             # PHASE 4: Summary Report
             logger.info("")
             logger.info("PHASE 4: SUMMARY REPORT GENERATION")
             logger.info("-" * 80)
             
-            summary_report = self.report_generator.generate_validation_summary(simulation_records)
+            summary_report = record_set.generate_summary_report()
+            record_set.save_summary_report(self.config.output_path)
             
             # Print summary to console
             print("\n" + summary_report)
@@ -211,7 +198,7 @@ class ValidationDataCollector:
             
             return {
                 'status': 'success',
-                'total_geometries': len(simulation_records),
+                'total_geometries': len(record_set),
                 'with_results': with_results,
                 'without_results': without_results,
                 'output_path': self.config.output_path

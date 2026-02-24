@@ -102,7 +102,8 @@ class SimulationRecord:
         """String representation."""
         return f"SimulationRecord({self.car_name}, {self.geometry_name}, status={self.get_status()})"
     
-    def find_and_extract_results(self, data_source, results_extractor, results_prefix: str):
+    def find_and_extract_results(self, data_source, results_extractor, results_prefix: str, 
+                                 simulator_filter: str = "JakubNet"):
         """
         Find and extract results for this simulation record.
         
@@ -110,9 +111,10 @@ class SimulationRecord:
             data_source: S3DataSource instance
             results_extractor: ResultsExtractor instance
             results_prefix: S3 prefix for results
+            simulator_filter: Simulator name to process (default: "JakubNet")
         """
         # Find matching results folder
-        results_folder, simulator = self._find_results_folder(data_source, results_prefix)
+        results_folder, simulator = self._find_results_folder(data_source, results_prefix, simulator_filter)
         
         if not results_folder:
             logger.debug(f"No results found for {self.unique_id}")
@@ -149,38 +151,107 @@ class SimulationRecord:
         
         logger.debug(f"Updated record with results: converged={results.get('converged')}")
     
-    def _find_results_folder(self, data_source, results_prefix: str) -> tuple[Optional[str], str]:
+    def _find_results_folder(self, data_source, results_prefix: str, 
+                            simulator_filter: str = "JakubNet") -> tuple[Optional[str], str]:
         """
-        Find the results folder matching this simulation's unique_id.
+        Find the results folder matching this simulation's unique_id for the specified simulator.
         
         Args:
             data_source: S3DataSource instance
             results_prefix: S3 prefix for results
+            simulator_filter: Simulator name to match (default: "JakubNet")
             
         Returns:
             Tuple of (results_folder_path, simulator_name) or (None, "")
+            
+        Note:
+            - JakubNet: Results folder has no prefix (exact match: unique_id)
+            - Other simulators: Results folder has prefix (format: SIMULATOR_unique_id)
         """
         # List all folders under results_prefix
         all_folders = data_source.list_folders(results_prefix)
         
-        # Look for exact match or match with simulator prefix
-        for folder in all_folders:
-            folder_name = data_source.extract_folder_name(folder)
-            
-            # Check for exact match (baseline/JakubNet)
-            if folder_name == self.unique_id:
-                return folder, "JakubNet"
-            
-            # Check for match with simulator prefix
-            # Format: <SIMULATOR_PREFIX>_<unique_id>
-            if self.unique_id in folder_name:
-                # Extract simulator prefix
-                simulator = folder_name.replace(f"_{self.unique_id}", "").replace(self.unique_id, "")
-                if simulator:
-                    simulator = simulator.strip('_')
-                else:
-                    simulator = "JakubNet"
-                
-                return folder, simulator
+        # JakubNet uses exact match (no prefix)
+        if simulator_filter == "JakubNet":
+            for folder in all_folders:
+                folder_name = data_source.extract_folder_name(folder)
+                if folder_name == self.unique_id:
+                    return folder, "JakubNet"
+        else:
+            # Other simulators use prefix format: SIMULATOR_unique_id
+            expected_folder_name = f"{simulator_filter}_{self.unique_id}"
+            for folder in all_folders:
+                folder_name = data_source.extract_folder_name(folder)
+                if folder_name == expected_folder_name:
+                    return folder, simulator_filter
         
         return None, ""
+    
+    # ========== CSV Export Support ==========
+    
+    @staticmethod
+    def get_csv_columns() -> list[str]:
+        """
+        Get list of CSV column names for export.
+        
+        Returns:
+            List of column names
+        """
+        return [
+            'Name',
+            'Unique_ID',
+            'Car_Name',
+            'Car_Group',
+            'Simulator',
+            'Baseline_ID',
+            'Morph_Type',
+            'Morph_Value',
+            'Converged',
+            'Cd',
+            'Cl',
+            'Drag_N',
+            'Lift_N',
+            'Avg_Cd',
+            'Avg_Cl',
+            'Avg_Drag_N',
+            'Avg_Lift_N',
+            'Std_Cd',
+            'Std_Cl',
+            'Std_Drag_N',
+            'Std_Lift_N',
+            'Has_Results',
+            'Status'
+        ]
+    
+    def to_csv_row(self) -> Dict[str, Any]:
+        """
+        Convert record to CSV row dictionary with formatted values.
+        
+        Returns:
+            Dictionary with column names as keys and formatted values
+        """
+        return {
+            'Name': self.geometry_name,
+            'Unique_ID': self.unique_id,
+            'Car_Name': self.car_name,
+            'Car_Group': self.car_group,
+            'Simulator': self.simulator or '',
+            'Baseline_ID': self.baseline_id,
+            'Morph_Type': self.morph_type or '',
+            'Morph_Value': self.morph_value if self.morph_value is not None else '',
+            'Converged': self.converged if self.converged is not None else '',
+            'Cd': f"{self.cd:.6f}" if self.cd is not None else '',
+            'Cl': f"{self.cl:.6f}" if self.cl is not None else '',
+            'Drag_N': f"{self.drag_n:.4f}" if self.drag_n is not None else '',
+            'Lift_N': f"{self.lift_n:.4f}" if self.lift_n is not None else '',
+            'Avg_Cd': f"{self.avg_cd:.6f}" if self.avg_cd is not None else '',
+            'Avg_Cl': f"{self.avg_cl:.6f}" if self.avg_cl is not None else '',
+            'Avg_Drag_N': f"{self.avg_drag_n:.4f}" if self.avg_drag_n is not None else '',
+            'Avg_Lift_N': f"{self.avg_lift_n:.4f}" if self.avg_lift_n is not None else '',
+            'Std_Cd': f"{self.std_cd:.6f}" if self.std_cd is not None else '',
+            'Std_Cl': f"{self.std_cl:.6f}" if self.std_cl is not None else '',
+            'Std_Drag_N': f"{self.std_drag_n:.4f}" if self.std_drag_n is not None else '',
+            'Std_Lift_N': f"{self.std_lift_n:.4f}" if self.std_lift_n is not None else '',
+            'Has_Results': self.has_results,
+            'Status': self.get_status()
+        }

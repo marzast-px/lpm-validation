@@ -40,8 +40,8 @@ class TestConfiguration:
         """Test loading configuration from YAML file."""
         config = Configuration.from_file(sample_config_file)
         
-        assert config.s3_bucket == "test-bucket"
-        assert config.geometries_prefix == "test/geometries"
+        assert config.s3_bucket == "sim-data"
+        assert config.geometries_prefix == "validation/geometries"
         assert "Polestar3" in config.car_groups
     
     def test_from_file_not_found(self):

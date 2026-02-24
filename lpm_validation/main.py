@@ -39,11 +39,17 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Process all cars using config file
+  # Process all cars with default simulator (JakubNet)
   %(prog)s --config config.yaml
   
-  # Process specific car
+  # Process specific car with default simulator (JakubNet)
   %(prog)s --config config.yaml --car Polestar3
+  
+  # Process all cars with DES simulator
+  %(prog)s --config config.yaml --simulator DES
+  
+  # Process specific car with DES simulator
+  %(prog)s --config config.yaml --car Audi_RS7_Sportback_Symmetric --simulator DES
   
   # Verbose logging
   %(prog)s --config config.yaml --verbose
@@ -62,6 +68,13 @@ Examples:
         type=str,
         default=None,
         help='Process only this specific car (optional)'
+    )
+    
+    parser.add_argument(
+        '--simulator',
+        type=str,
+        default="JakubNet",
+        help='Process only results from this simulator (e.g., JakubNet, DES) (optional, default: JakubNet)'
     )
     
     parser.add_argument(
@@ -96,11 +109,15 @@ def main():
         logger.info(f"Output Path: {config.output_path}")
         logger.info(f"Car Groups: {len(config.car_groups)} configured")
         
+        # Default simulator if not specified
+        simulator = args.simulator if args.simulator else "JakubNet"
+        logger.info(f"Target Simulator: {simulator}")
+        
         # Initialize collector
         collector = ValidationDataCollector(config=config)
         
         # Execute collection
-        result = collector.execute(car_filter=args.car)
+        result = collector.execute(car_filter=args.car, simulator_filter=simulator)
         
         # Print final summary
         if result['status'] == 'success':
