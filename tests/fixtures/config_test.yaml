@@ -1,4 +1,7 @@
 s3_bucket: "sim-data"
+simulators:
+  - JakubNet
+  - DES
 geometries_prefix: "validation/geometries"
 results_prefix: "validation/outputs"
 output_path: "./test_output"

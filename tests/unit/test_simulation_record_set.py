@@ -261,6 +261,30 @@ class TestSimulationRecordSet:
         mock_open.assert_called_once()
         mock_file.write.assert_called_once()
     
+    @patch('pathlib.Path.mkdir')
+    @patch('builtins.open', create=True)
+    def test_save_summary_report_custom_filename(self, mock_open, mock_mkdir, sample_records):
+        """Test saving summary report with custom filename."""
+        record_set = SimulationRecordSet()
+        record_set.extend(sample_records)
+        
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+        
+        # Save with custom filename
+        custom_filename = "JakubNet_validation_summary.txt"
+        record_set.save_summary_report("/tmp/output", filename=custom_filename)
+        
+        # Should create directory
+        mock_mkdir.assert_called_once()
+        
+        # Should write file with custom name
+        mock_open.assert_called_once()
+        # Verify the path used includes custom filename
+        call_args = mock_open.call_args[0][0]
+        assert custom_filename in str(call_args)
+        mock_file.write.assert_called_once()
+    
     def test_percentage_helper(self):
         """Test percentage calculation helper."""
         assert SimulationRecordSet._percentage(50, 100) == " 50.0%"

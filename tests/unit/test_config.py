@@ -13,6 +13,7 @@ class TestConfiguration:
         """Test configuration initialization with valid parameters."""
         config = Configuration(
             s3_bucket="test-bucket",
+            simulators=['JakubNet', 'DES'],
             geometries_prefix="test/geometries",
             results_prefix="test/results",
             output_path="./output",
@@ -20,6 +21,7 @@ class TestConfiguration:
         )
         
         assert config.s3_bucket == "test-bucket"
+        assert config.simulators == ['JakubNet', 'DES']
         assert config.geometries_prefix == "test/geometries"
         assert config.results_prefix == "test/results"
         assert config.output_path == "./output"
@@ -41,6 +43,7 @@ class TestConfiguration:
         config = Configuration.from_file(sample_config_file)
         
         assert config.s3_bucket == "sim-data"
+        assert config.simulators == ['JakubNet', 'DES']
         assert config.geometries_prefix == "validation/geometries"
         assert "Polestar3" in config.car_groups
     
@@ -54,6 +57,7 @@ class TestConfiguration:
         config_dict = sample_config.to_dict()
         
         assert config_dict["s3_bucket"] == "test-bucket"
+        assert config_dict["simulators"] == ['JakubNet']
         assert config_dict["geometries_prefix"] == "test/geometries"
         assert config_dict["results_prefix"] == "test/results"
         assert config_dict["output_path"] == "./test_output"
@@ -80,3 +84,47 @@ class TestConfiguration:
                 output_path="./output",
                 max_workers=0
             )
+    
+    def test_validate_empty_simulators(self):
+        """Test that empty simulators list raises ValueError."""
+        with pytest.raises(ValueError, match="simulators list cannot be empty"):
+            Configuration(
+                s3_bucket="test-bucket",
+                simulators=[],
+                geometries_prefix="test/geometries",
+                results_prefix="test/results",
+                output_path="./output"
+            )
+    
+    def test_validate_invalid_simulators_type(self):
+        """Test that invalid simulators type raises ValueError."""
+        with pytest.raises(ValueError, match="simulators must be a list"):
+            Configuration(
+                s3_bucket="test-bucket",
+                simulators="JakubNet",  # type: ignore[arg-type]
+                geometries_prefix="test/geometries",
+                results_prefix="test/results",
+                output_path="./output"
+            )
+    
+    def test_validate_invalid_simulator_items(self):
+        """Test that non-string simulator items raise ValueError."""
+        with pytest.raises(ValueError, match="all simulators must be strings"):
+            Configuration(
+                s3_bucket="test-bucket",
+                simulators=["JakubNet", 123],  # type: ignore[list-item]
+                geometries_prefix="test/geometries",
+                results_prefix="test/results",
+                output_path="./output"
+            )
+    
+    def test_default_simulators(self):
+        """Test that default simulators is ['JakubNet'] when not specified."""
+        config = Configuration(
+            s3_bucket="test-bucket",
+            geometries_prefix="test/geometries",
+            results_prefix="test/results",
+            output_path="./output"
+        )
+        
+        assert config.simulators == ['JakubNet']

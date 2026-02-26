@@ -2,7 +2,7 @@
 
 import yaml
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 
 class Configuration:
@@ -11,6 +11,7 @@ class Configuration:
     def __init__(
         self,
         s3_bucket: str,
+        simulators: Optional[List[str]] = None,
         geometries_prefix: str = "validation/geometries",
         results_prefix: str = "validation/outputs",
         output_path: str = "./output",
@@ -23,6 +24,7 @@ class Configuration:
         
         Args:
             s3_bucket: S3 bucket name containing simulation data
+            simulators: List of simulators to process (e.g., ['JakubNet', 'DES', 'SiemensMesh'])
             geometries_prefix: S3 prefix for geometry data
             results_prefix: S3 prefix for results data
             output_path: Local path for output files
@@ -31,6 +33,7 @@ class Configuration:
             max_workers: Number of workers for concurrent processing
         """
         self.s3_bucket = s3_bucket
+        self.simulators = simulators if simulators is not None else ['JakubNet']
         self.geometries_prefix = geometries_prefix.rstrip('/')
         self.results_prefix = results_prefix.rstrip('/')
         self.output_path = output_path
@@ -44,6 +47,15 @@ class Configuration:
         """Validate configuration parameters."""
         if not self.s3_bucket:
             raise ValueError("s3_bucket is required")
+        
+        if not self.simulators:
+            raise ValueError("simulators list cannot be empty")
+        
+        if not isinstance(self.simulators, list):
+            raise ValueError("simulators must be a list")
+        
+        if not all(isinstance(s, str) for s in self.simulators):
+            raise ValueError("all simulators must be strings")
         
         if not self.geometries_prefix:
             raise ValueError("geometries_prefix is required")
@@ -80,6 +92,7 @@ class Configuration:
         """Convert configuration to dictionary."""
         return {
             's3_bucket': self.s3_bucket,
+            'simulators': self.simulators,
             'geometries_prefix': self.geometries_prefix,
             'results_prefix': self.results_prefix,
             'output_path': self.output_path,

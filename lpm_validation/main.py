@@ -39,17 +39,23 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Process all cars with default simulator (JakubNet)
+  # Process all cars with simulators from config file
   %(prog)s --config config.yaml
   
-  # Process specific car with default simulator (JakubNet)
+  # Process specific car with simulators from config file
   %(prog)s --config config.yaml --car Polestar3
   
-  # Process all cars with DES simulator
+  # Process all cars with specific simulator (override config)
   %(prog)s --config config.yaml --simulator DES
   
-  # Process specific car with DES simulator
+  # Process specific car with specific simulator (override config)
   %(prog)s --config config.yaml --car Audi_RS7_Sportback_Symmetric --simulator DES
+  
+  # Process all cars into a single CSV file
+  %(prog)s --config config.yaml --single-file
+  
+  # Process multiple specific simulators (override config)
+  %(prog)s --config config.yaml --simulator JakubNet,DES,SiemensMesh
   
   # Verbose logging
   %(prog)s --config config.yaml --verbose
@@ -73,8 +79,14 @@ Examples:
     parser.add_argument(
         '--simulator',
         type=str,
-        default="JakubNet",
-        help='Process only results from this simulator (e.g., JakubNet, DES) (optional, default: JakubNet)'
+        default=None,
+        help='Simulator(s) to process (overrides config file). Options: specific name (e.g., JakubNet, DES) or comma-separated list (e.g., JakubNet,DES,SiemensMesh). If not specified, uses simulators from config file.'
+    )
+    
+    parser.add_argument(
+        '--single-file',
+        action='store_true',
+        help='Export all data to a single CSV file instead of separate files per car'
     )
     
     parser.add_argument(
@@ -108,24 +120,32 @@ def main():
         logger.info(f"Results Prefix: {config.results_prefix}")
         logger.info(f"Output Path: {config.output_path}")
         logger.info(f"Car Groups: {len(config.car_groups)} configured")
+        logger.info(f"Default Simulators: {', '.join(config.simulators)}")
         
-        # Default simulator if not specified
-        simulator = args.simulator if args.simulator else "JakubNet"
-        logger.info(f"Target Simulator: {simulator}")
+        # CLI simulator override
+        if args.simulator:
+            logger.info(f"CLI Override - Target Simulator(s): {args.simulator}")
         
         # Initialize collector
         collector = ValidationDataCollector(config=config)
         
         # Execute collection
-        result = collector.execute(car_filter=args.car, simulator_filter=simulator)
+        group_by_car = not args.single_file
+        result = collector.execute(car_filter=args.car, simulator_filter=args.simulator, group_by_car=group_by_car)
         
         # Print final summary
         if result['status'] == 'success':
             logger.info("")
             logger.info("Final Statistics:")
             logger.info(f"  Total Geometries: {result['total_geometries']}")
-            logger.info(f"  With Results: {result['with_results']}")
-            logger.info(f"  Without Results: {result['without_results']}")
+            
+            # Print stats for each processed simulator
+            if 'simulators_processed' in result:
+                for sim_name, sim_stats in result['simulators_processed'].items():
+                    logger.info(f"  {sim_name}:")
+                    logger.info(f"    With Results: {sim_stats['with_results']}")
+                    logger.info(f"    Without Results: {sim_stats['without_results']}")
+            
             logger.info(f"  Output Location: {result['output_path']}")
             sys.exit(0)
         else:
