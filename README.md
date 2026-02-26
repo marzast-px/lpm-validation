@@ -60,6 +60,14 @@ geometries_prefix: "sim-data/validation/geometries"
 results_prefix: "sim-data/validation/outputs"
 output_path: "./validation_output"
 
+# List of simulators to process (required)
+# Note: JakubNet has no prefix in result folder names
+# Other simulators use folder name prefixes (e.g., DES_geometry_name)
+simulators:
+  - JakubNet
+  - DES
+  - SiemensMesh
+
 car_groups:
   Polestar3: "Polestar3"
   Polestar4: "Polestar4"
@@ -73,17 +81,20 @@ See [config.example.yaml](config.example.yaml) for a template.
 ### Command Line
 
 ```bash
-# Process all cars
+# Process all cars with simulators from config file
 lpm-validation --config config.yaml
 
 # Process specific car only
 lpm-validation --config config.yaml --car Polestar3
 
-# Output to S3 instead of local files
-lpm-validation --config config.yaml --output-s3
+# Override simulators from config (process only DES)
+lpm-validation --config config.yaml --simulator DES
 
-# Test S3 connection
-lpm-validation --config config.yaml --test-connection
+# Override with multiple simulators (comma-separated)
+lpm-validation --config config.yaml --simulator JakubNet,DES,SiemensMesh
+
+# Export to single CSV file instead of per-car files
+lpm-validation --config config.yaml --single-file
 
 # Enable verbose logging
 lpm-validation --config config.yaml --verbose
@@ -98,16 +109,21 @@ from lpm_validation import Configuration, ValidationDataCollector
 config = Configuration.from_file('config.yaml')
 
 # Initialize collector
-collector = ValidationDataCollector(config, output_to_s3=False)
+collector = ValidationDataCollector(config)
 
-# Test connection (optional)
-collector.test_connection()
-
-# Execute collection
+# Execute collection with simulators from config
 result = collector.execute(car_filter='Polestar3')
 
+# Or override simulators via CLI-style parameter
+result = collector.execute(
+    car_filter='Polestar3',
+    simulator_filter='JakubNet,DES',
+    group_by_car=True
+)
+
 print(f"Processed {result['total_geometries']} geometries")
-print(f"Found results for {result['with_results']} geometries")
+for sim, stats in result['simulators_processed'].items():
+    print(f"{sim}: {stats['with_results']} with results")
 ```
 
 ## Data Processing Workflow
@@ -119,20 +135,23 @@ print(f"Found results for {result['with_results']} geometries")
 
 2. **Results Matching Phase**
    - Searches for corresponding results folders
-   - Handles multiple simulators (JakubNet, DES, SiemensSolve, etc.)
+   - Processes simulators specified in config file (or CLI override)
+   - Handles JakubNet (no prefix) and other simulators with prefixes (e.g., DES_*, SiemensMesh_*)
    - Extracts force data from `results.json` and `Force_Series.csv`
    - Calculates Cd/Cl coefficients using: `C = 2*F/(ρ*v²*A)`
    - Averages last 300 iterations from time series
 
 3. **Export Phase**
-   - Groups results by car
-   - Exports CSV files: `{car_name}_validation_data.csv`
+   - Groups results by car (or single file mode)
+   - Exports CSV files: `{Simulator}_{car_name}.csv` or `{Simulator}_validation_data.csv`
+   - Separate files generated for each simulator
    - Includes all metadata, coefficients, and statistics
 
 4. **Summary Report Phase**
-   - Generates validation summary report
+   - Generates validation summary report per simulator
    - Shows total/available/missing results per car
    - Displays simulator and convergence statistics
+   - Output: `{Simulator}_validation_summary.txt`
 
 ## Output Files
 
