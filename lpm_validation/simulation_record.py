@@ -1,7 +1,7 @@
 """Data models for simulation records."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field, asdict
 from lpm_validation.results_extractor import ResultsExtractor
 
@@ -85,7 +85,9 @@ class SimulationRecord:
             return "incomplete"
     
     def find_and_extract_results(self, data_source, results_prefix: str, 
-                                 simulator_filter: str = "JakubNet"):
+                                 simulator_filter: str = "JakubNet",
+                                 cached_results_folders: Optional[List[str]] = None,
+                                 results_extractor: Optional[ResultsExtractor] = None):
         """
         Find and extract results for this simulation record.
         
@@ -93,9 +95,16 @@ class SimulationRecord:
             data_source: S3DataSource instance
             results_prefix: S3 prefix for results
             simulator_filter: Simulator name to process (default: "JakubNet")
+            cached_results_folders: Pre-fetched list of results folders (performance optimization)
+            results_extractor: Shared ResultsExtractor instance (performance optimization)
         """
         # Find matching results folder
-        results_folder, simulator = self._find_results_folder(data_source, results_prefix, simulator_filter)
+        results_folder, simulator = self._find_results_folder(
+            data_source, 
+            results_prefix, 
+            simulator_filter,
+            cached_results_folders=cached_results_folders
+        )
         
         if not results_folder:
             logger.debug(f"No results found for {self.unique_id}")
@@ -104,8 +113,10 @@ class SimulationRecord:
         
         logger.debug(f"Found results for {self.unique_id} in {results_folder}")
         
-        # Initialize results extractor and extract results data
-        results_extractor = ResultsExtractor(data_source)
+        # Initialize results extractor (use shared instance if provided, otherwise create new)
+        if results_extractor is None:
+            results_extractor = ResultsExtractor(data_source)
+        
         results = results_extractor.extract_simulation_results(results_folder, simulator)
         
         if not results:
@@ -130,7 +141,8 @@ class SimulationRecord:
         logger.debug(f"Updated record with results: converged={results.get('converged')}")
     
     def _find_results_folder(self, data_source, results_prefix: str, 
-                            simulator_filter: str = "JakubNet") -> tuple[Optional[str], str]:
+                            simulator_filter: str = "JakubNet",
+                            cached_results_folders: Optional[List[str]] = None) -> tuple[Optional[str], str]:
         """
         Find the results folder matching this simulation's unique_id for the specified simulator.
         
@@ -138,6 +150,7 @@ class SimulationRecord:
             data_source: S3DataSource instance
             results_prefix: S3 prefix for results
             simulator_filter: Simulator name to match (default: "JakubNet")
+            cached_results_folders: Pre-fetched list of results folders (performance optimization)
             
         Returns:
             Tuple of (results_folder_path, simulator_name) or (None, "")
@@ -146,8 +159,11 @@ class SimulationRecord:
             - JakubNet: Results folder has no prefix (exact match: unique_id)
             - Other simulators: Results folder has prefix (format: SIMULATOR_unique_id)
         """
-        # List all folders under results_prefix
-        all_folders = data_source.list_folders(results_prefix)
+        # Use cached folders if provided, otherwise fetch from S3
+        if cached_results_folders is not None:
+            all_folders = cached_results_folders
+        else:
+            all_folders = data_source.list_folders(results_prefix)
         
         # JakubNet uses exact match (no prefix)
         if simulator_filter == "JakubNet":

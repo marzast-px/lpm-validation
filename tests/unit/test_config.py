@@ -57,7 +57,7 @@ class TestConfiguration:
         config_dict = sample_config.to_dict()
         
         assert config_dict["s3_bucket"] == "test-bucket"
-        assert config_dict["simulators"] == ['JakubNet']
+        assert config_dict["simulators"] == ['JakubNet', 'DES']
         assert config_dict["geometries_prefix"] == "test/geometries"
         assert config_dict["results_prefix"] == "test/results"
         assert config_dict["output_path"] == "./test_output"

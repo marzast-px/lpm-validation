@@ -184,12 +184,23 @@ class ValidationDataCollector:
                 logger.info(f"PHASE 2: RESULTS MATCHING - {simulator}")
                 logger.info("-" * 80)
                 
-                # Match results for each simulation record
+                # PERFORMANCE OPTIMIZATION: Fetch results folder structure once
+                logger.info("Fetching results folder structure from S3...")
+                cached_results_folders = self.data_source.list_folders(self.config.results_prefix)
+                logger.info(f"Found {len(cached_results_folders)} results folders in S3")
+                
+                # Create a shared ResultsExtractor instance (reuse for all records)
+                from lpm_validation.results_extractor import ResultsExtractor
+                shared_results_extractor = ResultsExtractor(self.data_source)
+                
+                # Match results for each simulation record using cached folder list
                 for record in simulator_record_set:
                     record.find_and_extract_results(
                         self.data_source,
                         self.config.results_prefix,
-                        simulator_filter=simulator
+                        simulator_filter=simulator,
+                        cached_results_folders=cached_results_folders,
+                        results_extractor=shared_results_extractor
                     )
                 
                 with_results = simulator_record_set.count_with_results()
